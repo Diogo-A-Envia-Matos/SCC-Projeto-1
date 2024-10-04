@@ -22,6 +22,8 @@ public class JavaUsers implements Users {
 	private static Logger Log = Logger.getLogger(JavaUsers.class.getName());
 
 	private static Users instance;
+
+	private static DB database; // Choose between CosmosDB or Hibernate
 	
 	synchronized public static Users getInstance() {
 		if( instance == null )
