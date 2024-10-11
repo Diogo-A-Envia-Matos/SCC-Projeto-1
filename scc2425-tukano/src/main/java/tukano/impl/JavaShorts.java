@@ -8,11 +8,14 @@ import static tukano.api.Result.errorOrVoid;
 import static tukano.api.Result.ok;
 import static tukano.api.Result.ErrorCode.BAD_REQUEST;
 import static tukano.api.Result.ErrorCode.FORBIDDEN;
-import static utils.DB.getOne;
+//import static utils.DB.getOne;
 
-import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.UUID;
 import java.util.logging.Logger;
+
+import com.azure.cosmos.models.CosmosBatch;
 
 import tukano.api.Blobs;
 import tukano.api.Result;
@@ -23,6 +26,7 @@ import tukano.impl.data.Following;
 import tukano.impl.data.Likes;
 import tukano.impl.rest.TukanoRestServer;
 import utils.DB;
+import utils.DBCosmos;
 
 public class JavaShorts implements Shorts {
 
@@ -169,22 +173,28 @@ public class JavaShorts implements Shorts {
 
 		if( ! Token.isValid( token, userId ) )
 			return error(FORBIDDEN);
-		
-		return DB.transaction( (hibernate) -> {
+
+		Map<String, Map<String, String>> toRemove = new HashMap<>();
+
+		//TODO: Pensar numa maneira de obter os valores a remover
+
+		// return DBCosmos.transaction()
+
+		// return DB.transaction( (hibernate) -> {
 						
-			//delete shorts
-			var query1 = format("DELETE Short s WHERE s.ownerId = '%s'", userId);		
-			hibernate.createQuery(query1, Short.class).executeUpdate();
+		// 	//delete shorts
+		// 	var query1 = format("DELETE Short s WHERE s.ownerId = '%s'", userId);		
+		// 	hibernate.createQuery(query1, Short.class).executeUpdate();
 			
-			//delete follows
-			var query2 = format("DELETE Following f WHERE f.follower = '%s' OR f.followee = '%s'", userId, userId);		
-			hibernate.createQuery(query2, Following.class).executeUpdate();
+		// 	//delete follows
+		// 	var query2 = format("DELETE Following f WHERE f.follower = '%s' OR f.followee = '%s'", userId, userId);		
+		// 	hibernate.createQuery(query2, Following.class).executeUpdate();
 			
-			//delete likes
-			var query3 = format("DELETE Likes l WHERE l.ownerId = '%s' OR l.userId = '%s'", userId, userId);		
-			hibernate.createQuery(query3, Likes.class).executeUpdate();
+		// 	//delete likes
+		// 	var query3 = format("DELETE Likes l WHERE l.ownerId = '%s' OR l.userId = '%s'", userId, userId);		
+		// 	hibernate.createQuery(query3, Likes.class).executeUpdate();
 			
-		});
+		// });
 	}
 	
 }

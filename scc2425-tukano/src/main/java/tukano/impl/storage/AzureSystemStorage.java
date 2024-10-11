@@ -183,18 +183,47 @@ public class AzureSystemStorage implements BlobStorage {
 	public Result<Void> delete(String path) {
 		if (path == null)
 			return error(BAD_REQUEST);
-
+		
+		//var file = toFile( path );
+		
 		try {
-			var file = toFile( path );
-			Files.walk(file.toPath())
-			.sorted(Comparator.reverseOrder())
-			.map(Path::toFile)
-			.forEach(File::delete);
-		} catch (IOException e) {
-			e.printStackTrace();
+			// Get container client
+			BlobContainerClient containerClient = new BlobContainerClientBuilder()
+														.connectionString(storageConnectionString)
+														.containerName(DEFAULT_ROOT_DIR)
+														.buildClient();
+
+			// Get client to blob
+			BlobClient blob = containerClient.getBlobClient(path);
+
+			if( ! blob.exists() )
+				return error(NOT_FOUND);
+
+			// Download contents to BinaryData (check documentation for other alternatives)
+			blob.delete();
+
+			String[] filePath = path.split("/");
+			String filename = filePath[filePath.length - 1];
+			
+			System.out.println( "File deleted : " + filename);
+			
+			return ok();
+		} catch( Exception e) {
+			//TODO: Perguntar como devia tratar desta excecao
 			return error(INTERNAL_ERROR);
 		}
-		return ok();
+
+		// try {
+		// 	var file = toFile( path );
+		// 	Files.walk(file.toPath())
+		// 	.sorted(Comparator.reverseOrder())
+		// 	.map(Path::toFile)
+		// 	.forEach(File::delete);
+		// } catch (IOException e) {
+		// 	e.printStackTrace();
+		// 	return error(INTERNAL_ERROR);
+		// }
+		// return ok();
 	}
 	
 	//TODO: Adapt this method to work with Azure

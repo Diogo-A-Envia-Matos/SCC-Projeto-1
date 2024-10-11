@@ -4,7 +4,7 @@ import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 
 //TODO: Finish this file
-public class Redis {
+public class RedisCache {
     
     // Have to make the calls to DBCosmos search this cache first before checking the database
 
