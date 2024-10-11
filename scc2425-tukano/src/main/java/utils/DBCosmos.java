@@ -25,6 +25,9 @@ public class DBCosmos implements DB {
 	private static final String DB_KEY = "6RBrEE6YTE67v9v4h9MNfbgAcj4AjLAwzxQhwNeMAPFrNRcTkNFPdGhvW16Lx0zperURFz4IUgtkACDbGXfDPw==";
 	private static final String DB_NAME = "sccdatabase70252";
 	private static final String CONTAINER = "users";
+	private static final String PARTITION_KEY = "id";
+	// PARTITION_KEY talvez seja "/id"
+	// TODO: Use
 
 	private static DBCosmos instance;
 
@@ -70,11 +73,14 @@ public class DBCosmos implements DB {
 		} catch( CosmosException ce ) {
 			//ce.printStackTrace();
 			//TODO: ADD error code
-			return Result.error ( errorCodeFromStatus(ce.getStatusCode() ));		
+			//TODO: Check how to return the error
+			//return Result.error ( errorCodeFromStatus(ce.getStatusCode() ));		
+			return null;
 		} catch( Exception x ) {
 			x.printStackTrace();
 			//TODO: ADD error code
-			return Result.error( ErrorCode.INTERNAL_ERROR);						
+			//return Result.error( ErrorCode.INTERNAL_ERROR);		
+			return null;				
 		}
 			
 	}
@@ -89,10 +95,12 @@ public class DBCosmos implements DB {
 	}
 	
 	//TODO: Lookup how to delete
+	//TODO: Check if it was Result<?>
 	public <T> Result<T> deleteOne(T obj) {
 		try {
 			init();
-			return Result.ok(supplierFunc.get());			
+			//return Result.ok(supplierFunc.get());
+
 		} catch( CosmosException ce ) {
 			//ce.printStackTrace();
 			return Result.error ( errorCodeFromStatus(ce.getStatusCode() ));		
@@ -101,13 +109,16 @@ public class DBCosmos implements DB {
 			return Result.error( ErrorCode.INTERNAL_ERROR);						
 		}
 
-		CosmosItemResponse<T> res = container.deleteItem(obj);
+		//TODO: Get the id of the object
+		//TODO: Must delete specific object
+		//CosmosItemResponse<?> res = container.deleteItem(GetId.getId(obj), new PartitionKey(PARTITION_KEY), new CosmosItemRequestOptions());
+		CosmosItemResponse<?> res = container.deleteItem(obj, new CosmosItemRequestOptions());
 			if( res.getStatusCode() < 300)
-				return res.getItem();
+				return Result.ok(obj);
 			else
-				throw new Exception("ERROR:" + res.getStatusCode());
+			return Result.error( ErrorCode.INTERNAL_ERROR);		
 
-		return tryCatch( () -> container.deleteItem(obj, new CosmosItemRequestOptions()).getItem());
+		//return tryCatch( () -> container.deleteItem(obj, new CosmosItemRequestOptions()).getItem());
 	}
 	
 	public <T> Result<T> updateOne(T obj) {
@@ -119,6 +130,7 @@ public class DBCosmos implements DB {
 	}
 	
 	//TODO: Read azure documentation
+	// Nao pode fazer tudo por falta de batches, e necessario criar situacoes especiais
 	public <T> Result<T> transaction( Consumer<Session> c) {
 		return Hibernate.getInstance().execute( c::accept );
 	}
