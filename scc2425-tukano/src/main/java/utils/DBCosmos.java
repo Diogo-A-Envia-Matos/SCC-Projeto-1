@@ -159,7 +159,14 @@ public class DBCosmos implements DB {
 		try {
 			init();
 			//return Result.ok(supplierFunc.get());
-
+			//TODO: Get the id of the object
+			//TODO: Must delete specific object
+			//CosmosItemResponse<?> res = container.deleteItem(GetId.getId(obj), new PartitionKey(PARTITION_KEY), new CosmosItemRequestOptions());
+			CosmosItemResponse<?> res = container.deleteItem(obj, new CosmosItemRequestOptions());
+			if( res.getStatusCode() < 300)
+				return Result.ok(obj);
+			else
+			return Result.error( ErrorCode.INTERNAL_ERROR);	
 		} catch( CosmosException ce ) {
 			//ce.printStackTrace();
 			return Result.error ( errorCodeFromStatus(ce.getStatusCode() ));		
@@ -168,14 +175,7 @@ public class DBCosmos implements DB {
 			return Result.error( ErrorCode.INTERNAL_ERROR);						
 		}
 
-		//TODO: Get the id of the object
-		//TODO: Must delete specific object
-		//CosmosItemResponse<?> res = container.deleteItem(GetId.getId(obj), new PartitionKey(PARTITION_KEY), new CosmosItemRequestOptions());
-		CosmosItemResponse<?> res = container.deleteItem(obj, new CosmosItemRequestOptions());
-			if( res.getStatusCode() < 300)
-				return Result.ok(obj);
-			else
-			return Result.error( ErrorCode.INTERNAL_ERROR);		
+
 
 		//return tryCatch( () -> container.deleteItem(obj, new CosmosItemRequestOptions()).getItem());
 	}

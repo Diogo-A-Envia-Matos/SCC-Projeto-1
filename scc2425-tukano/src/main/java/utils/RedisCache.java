@@ -1,7 +1,14 @@
 package utils;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
+import tukano.api.Short;
+import tukano.api.User;
+import tukano.impl.data.Following;
+import tukano.impl.data.Likes;
 
 //TODO: Finish this file
 public class RedisCache {
@@ -33,6 +40,45 @@ public class RedisCache {
 		poolConfig.setBlockWhenExhausted(true);
 		instance = new JedisPool(poolConfig, RedisHostname, REDIS_PORT, REDIS_TIMEOUT, RedisKey, Redis_USE_TLS);
 		return instance;
+	}
+
+	// TODO: Decide if id is created inside or outside of RedisCache
+	public <T> void addItem(String id, T item, Class<T> clazz) {
+        try (Jedis jedis = instance.getResource()) {
+			var value = JSON.encode( item );
+            jedis.set(id, value);
+        } catch (Exception e) {
+			e.printStackTrace();
+        }
+    }
+	
+	//TODO: Find better way than else if
+	//TODO: Figure out how to use T directly
+	public <T> T getItem(String id, T item, Class<T> clazz) {
+        try (Jedis jedis = instance.getResource()) {
+			var res = JSON.decode( jedis.get(id), clazz);
+			return res;
+        } catch (Exception e) {
+			throw e;
+        }
+    }
+
+	//TODO: Find better way than else if
+	//TODO: Figure out how to use T directly
+	public <T> T deleteItem(String id, T item, Class<T> clazz) {
+        try (Jedis jedis = instance.getResource()) {
+			jedis.del(id);
+			var res = JSON.decode( jedis.get(id), clazz);
+			return res;
+        } catch (Exception e) {
+			throw e;
+        }
+    }
+
+	//TODO: Complete function
+	private <T> String getCacheId(String id, Class<T> clazz) {
+		
+		return id;
 	}
 
 }
