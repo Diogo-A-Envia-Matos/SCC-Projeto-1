@@ -77,7 +77,7 @@ public class RedisCache {
 
 	//TODO: Complete function
 	private <T> String getCacheId(String id, Class<T> clazz) {
-		
+		//Pode ser
 		return id;
 	}
 

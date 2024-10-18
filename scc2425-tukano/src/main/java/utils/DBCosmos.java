@@ -92,12 +92,12 @@ public class DBCosmos implements DB {
 			//TODO: Check how to return the error
 			//TODO: Check if null is correct
 			//return Result.error ( errorCodeFromStatus(ce.getStatusCode() ));		
-			return null;
+			throw ce;
 		} catch( Exception x ) {
 			x.printStackTrace();
 			//TODO: ADD error code
-			//return Result.error( ErrorCode.INTERNAL_ERROR);		
-			return null;				
+			//return Result.error( ErrorCode.INTERNAL_ERROR);	
+			throw x;
 		}
 			
 	}
@@ -110,11 +110,11 @@ public class DBCosmos implements DB {
 			return res.stream().toList();		
 		} catch( CosmosException ce ) {
 			//TODO: Check if null is correct
-			return null;
+			throw ce;
 		} catch( Exception x ) {
 			x.printStackTrace();
 			//TODO: ADD error code		
-			return null;				
+			throw x;
 		}
 	}
 	
@@ -187,9 +187,11 @@ public class DBCosmos implements DB {
 	public <T> Result<T> insertOne( T obj) {
 		return tryCatch( () -> container.createItem(obj).getItem());
 	}
+
 	
 	//TODO: Read azure documentation
 	//TODO: Decidir o que fazer com transaction
+	//TODO: Separar os varios pedidos
 	// Nao pode fazer tudo por falta de batches, e necessario criar situacoes especiais
 	public <T> Result<T> transaction( CosmosBatch batch) {
 		try {
@@ -211,6 +213,30 @@ public class DBCosmos implements DB {
 		// CosmosBatchResponse response = container.executeCosmosBatch(batch);
 		// return Result.ok(obj);
 	}
+	
+	//TODO: Read azure documentation
+	//TODO: Decidir o que fazer com transaction
+	// Nao pode fazer tudo por falta de batches, e necessario criar situacoes especiais
+	// public <T> Result<T> transaction( CosmosBatch batch) {
+	// 	try {
+	// 		init();
+	// 		CosmosBatchResponse response = container.executeCosmosBatch(batch);
+	// 		if (response.isSuccessStatusCode())
+	// 			return Result.ok();
+	// 		else {
+	// 			return Result.error(ErrorCode.CONFLICT);
+	// 		}			
+	// 	} catch( CosmosException ce ) {
+	// 		//ce.printStackTrace();
+	// 		return Result.error ( errorCodeFromStatus(ce.getStatusCode() ));		
+	// 	} catch( Exception x ) {
+	// 		x.printStackTrace();
+	// 		return Result.error( ErrorCode.INTERNAL_ERROR);						
+	// 	}
+	// 	// return tryCatch( () -> container.executeCosmosBatch(batch).getResults());
+	// 	// CosmosBatchResponse response = container.executeCosmosBatch(batch);
+	// 	// return Result.ok(obj);
+	// }
 	
 	// public <T> Result<T> transaction( Function<Session, Result<T>> func) {
 	// 	return Hibernate.getInstance().execute( func );

@@ -6,9 +6,25 @@ import java.util.function.Function;
 
 import org.hibernate.Session;
 
+import com.azure.cosmos.ConsistencyLevel;
+import com.azure.cosmos.CosmosClient;
+import com.azure.cosmos.CosmosClientBuilder;
+
 import tukano.api.Result;
 
 public class DBHibernate implements DB {
+	
+	private static DBHibernate instance;
+
+	public static synchronized DBHibernate getInstance() {
+		if( instance != null)
+			return instance;
+		instance = new DBHibernate();
+		return instance;
+		
+	}
+
+	public DBHibernate() {}
 
 	public <T> List<T> sql(String query, Class<T> clazz) {
 		return Hibernate.getInstance().sql(query, clazz);
