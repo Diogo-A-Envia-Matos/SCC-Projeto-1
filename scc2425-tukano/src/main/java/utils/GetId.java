@@ -1,5 +1,6 @@
 package utils;
 
+import exceptions.InvalidClassException;
 import tukano.api.Result;
 import tukano.api.Result.ErrorCode;
 import tukano.api.User;
@@ -7,6 +8,7 @@ import tukano.api.Short;
 import tukano.impl.data.Following;
 import tukano.impl.data.Likes;
 
+//TODO: Decide how ids should be saved in cosmosDB
 public class GetId {
 
     public static String getId(Object obj) {
@@ -17,13 +19,13 @@ public class GetId {
             return ((Short) obj).getShortId();
         }
         else if (obj instanceof Following) {
-            return ((Following) obj).getFollower();
+            return String.format("%s-%s", ((Following) obj).getFollower(), ((Following) obj).getFollowee());
         }
         else if (obj instanceof Likes) {
-            return ((Likes) obj).getUserId();
+            return String.format("%s-%s", ((Likes) obj).getUserId(), ((Likes) obj).getShortId());
         }
         else {
-            return null;
+			throw new InvalidClassException("Invalid Class: " + obj.getClass().toString());
         }
     }
 }

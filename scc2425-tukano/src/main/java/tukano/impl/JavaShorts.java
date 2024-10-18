@@ -13,6 +13,7 @@ import static tukano.api.Result.ErrorCode.FORBIDDEN;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
+import java.util.LinkedList;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -29,6 +30,7 @@ import tukano.impl.rest.TukanoRestServer;
 import utils.DB;
 import utils.DBCosmos;
 // import utils.DBHibernate;
+import utils.Operations;
 
 //TODO: Como fazer funcoes que usam queries
 public class JavaShorts implements Shorts {
@@ -177,6 +179,7 @@ public class JavaShorts implements Shorts {
 			return error( res.error() );
 	}
 	
+	//TODO: Implement way to change the function used based on database type
 	@Override
 	public Result<Void> deleteAllShorts(String userId, String password, String token) {
 		Log.info(() -> format("deleteAllShorts : userId = %s, password = %s, token = %s\n", userId, password, token));
@@ -184,24 +187,37 @@ public class JavaShorts implements Shorts {
 		if( ! Token.isValid( token, userId ) )
 			return error(FORBIDDEN);
 
-		Map<String, Map<String, String>> toRemove = new HashMap<>();
+		// Map<String, Map<String, String>> toRemove = new HashMap<>();
 
 		//Ideia, colocar likes e follows no users
 		//TODO: Tentar usar Bulk Operations
 
 		// 3 pesquisas -> 1 batch delete
-		var query1 = format("DELETE Short s WHERE s.ownerId = '%s'", userId);	
+		var query1 = format("SELECT * FROM Short s WHERE s.ownerId = '%s'", userId);
+		List<Short> shortsToRemove = database.sql(query1, Short.class);
 		
 		//delete follows
-		var query2 = format("DELETE Following f WHERE f.follower = '%s' OR f.followee = '%s'", userId, userId);	
+		var query2 = format("SELECT * FROM Following f WHERE f.follower = '%s' OR f.followee = '%s'", userId, userId);	
+		List<Following> followingsToRemove = database.sql(query2, Following.class);
 		
 		//delete likes
-		var query3 = format("DELETE Likes l WHERE l.ownerId = '%s' OR l.userId = '%s'", userId, userId);
-		
+		var query3 = format("SELECT * FROM Likes l WHERE l.ownerId = '%s' OR l.userId = '%s'", userId, userId);
+		List<Likes> likesToRemove = database.sql(query3, Likes.class);
 
-		//TODO: Pensar numa maneira de obter os valores a remover
+		Map<Operations, List<Object>> operations = new HashMap<>();
+		operations.put(Operations.DELETE, new LinkedList<>());
 
-		// return DBCosmos.transaction()
+		for (Short s: shortsToRemove) {
+			operations.get(Operations.DELETE).add(s);
+		}
+		for (Following f: followingsToRemove) {
+			operations.get(Operations.DELETE).add(f);
+		}
+		for (Likes l: likesToRemove) {
+			operations.get(Operations.DELETE).add(l);
+		}
+
+		return ((DBCosmos) database).transaction(operations);
 
 		// return DB.transaction( (hibernate) -> {
 						

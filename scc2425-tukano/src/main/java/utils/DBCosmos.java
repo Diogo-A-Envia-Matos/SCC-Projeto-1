@@ -1,6 +1,8 @@
 package utils;
 
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Map;
 import java.util.function.Supplier;
 
 import org.hsqldb.rights.User;
@@ -16,6 +18,9 @@ import com.azure.cosmos.CosmosDatabase;
 import com.azure.cosmos.CosmosException;
 import com.azure.cosmos.models.CosmosBatch;
 import com.azure.cosmos.models.CosmosBatchResponse;
+import com.azure.cosmos.models.CosmosBulkOperationResponse;
+import com.azure.cosmos.models.CosmosBulkOperations;
+import com.azure.cosmos.models.CosmosItemOperation;
 import com.azure.cosmos.models.CosmosItemRequestOptions;
 import com.azure.cosmos.models.CosmosItemResponse;
 import com.azure.cosmos.models.CosmosQueryRequestOptions;
@@ -53,7 +58,7 @@ public class DBCosmos implements DB {
 		         .endpoint(CONNECTION_URL)
 		         .key(DB_KEY)
 		         //.directMode()
-		         .gatewayMode()		
+		         .gatewayMode()
 		         // replace by .directMode() for better performance
 		         .consistencyLevel(ConsistencyLevel.SESSION)
 		         .connectionSharingAcrossClientsEnabled(true)
@@ -118,29 +123,31 @@ public class DBCosmos implements DB {
 		}
 	}
 	
+	//TODO: Put objects in separate containers
+	//TODO: This function is built for cache, not database. Update it for database
+	//TODO: Decide if it's better to keep cache functions on "RedisCache", or have it be only for the cache itself
 	public <T> Result<T> getOne(String id, Class<T> clazz) {
-		//TODO: Put this code in a separate function
 		try (var jedis = RedisCache.getCachePool().getResource()) {
 			if (clazz.equals(Users.class)) {
-				var user = jedis.get(USERS_CONTAINER + id);
+				var user = jedis.get(USERS_CONTAINER + ":" + id);
 				if (user != null) {
 					var object = JSON.decode(user, clazz);
 					return Result.ok(object);
 				}
 			} else if (clazz.equals(Short.class)) {
-				var shrt = jedis.get(SHORTS_CONTAINER + id);
+				var shrt = jedis.get(SHORTS_CONTAINER + ":" + id);
 				if (shrt != null) {
 					var object = JSON.decode(shrt, clazz);
 					return Result.ok(object);
 				}
 			} else if (clazz.equals(Following.class)) {
-				var follow = jedis.get(FOLLOWINGS_CONTAINER + id);
+				var follow = jedis.get(FOLLOWINGS_CONTAINER + ":" + id);
 				if (follow != null) {
 					var object = JSON.decode(follow, clazz);
 					return Result.ok(object);
 				}
 			} else if (clazz.equals(Likes.class)) {
-				var like = jedis.get(LIKES_CONTAINER + id);
+				var like = jedis.get(LIKES_CONTAINER + ":" + id);
 				if (like != null) {
 					var object = JSON.decode(like, clazz);
 					return Result.ok(object);
@@ -148,9 +155,35 @@ public class DBCosmos implements DB {
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
+			throw e;
 		}
-
-		return tryCatch( () -> container.readItem(id, new PartitionKey(id), clazz).getItem());
+		// try {
+		// 	if (clazz.equals(Users.class)) {
+				
+		// 	} else if (clazz.equals(Short.class)) {
+		// 		var shrt = jedis.get(SHORTS_CONTAINER + id);
+		// 		if (shrt != null) {
+		// 			var object = JSON.decode(shrt, clazz);
+		// 			return Result.ok(object);
+		// 		}
+		// 	} else if (clazz.equals(Following.class)) {
+		// 		var follow = jedis.get(FOLLOWINGS_CONTAINER + id);
+		// 		if (follow != null) {
+		// 			var object = JSON.decode(follow, clazz);
+		// 			return Result.ok(object);
+		// 		}
+		// 	} else if (clazz.equals(Likes.class)) {
+		// 		var like = jedis.get(LIKES_CONTAINER + id);
+		// 		if (like != null) {
+		// 			var object = JSON.decode(like, clazz);
+		// 			return Result.ok(object);
+		// 		}
+		// 	}
+		// } catch (Exception e) {
+		// 	e.printStackTrace();
+		// 	throw e;
+		// }
+			return tryCatch( () -> container.readItem(id, new PartitionKey(id), clazz).getItem());
 	}
 	
 	//TODO: Lookup how to delete
@@ -180,10 +213,12 @@ public class DBCosmos implements DB {
 		//return tryCatch( () -> container.deleteItem(obj, new CosmosItemRequestOptions()).getItem());
 	}
 	
+	//TODO: Insert partition key (based on object class)
 	public <T> Result<T> updateOne(T obj) {
 		return tryCatch( () -> container.upsertItem(obj).getItem());
 	}
 	
+	//TODO: Insert partition key (based on object class)
 	public <T> Result<T> insertOne( T obj) {
 		return tryCatch( () -> container.createItem(obj).getItem());
 	}
@@ -212,6 +247,36 @@ public class DBCosmos implements DB {
 		// return tryCatch( () -> container.executeCosmosBatch(batch).getResults());
 		// CosmosBatchResponse response = container.executeCosmosBatch(batch);
 		// return Result.ok(obj);
+	}
+	
+	//TODO: Add remaining operations
+	//TODO: Add way to cancel changes
+	public <T> Result<T> transaction(Map<Operations, List<Object>> operations) {
+		try {
+			init();
+			List<CosmosItemOperation> cosmosItemOperations = new ArrayList<CosmosItemOperation>();
+			// var addOperations = operations.get(Operations.ADD);
+			// var readOperations = operations.get(Operations.READ);
+			// var replaceOperations = operations.get(Operations.REPLACE);
+			var deleteOperations = operations.get(Operations.DELETE);
+			if (deleteOperations != null) {
+				for (Object item: deleteOperations) {
+					cosmosItemOperations.add(CosmosBulkOperations.getDeleteItemOperation(GetId.getId(item), PARTITION_KEY));
+				}
+			}
+			var response = container.executeBulkOperations(cosmosItemOperations);
+			for (CosmosBulkOperationResponse<Object> res: response) {
+				if (!res.getResponse().isSuccessStatusCode())
+					return Result.error(ErrorCode.INTERNAL_ERROR);
+			}
+			return Result.ok();
+		} catch( CosmosException ce ) {
+			//ce.printStackTrace();
+			return Result.error ( errorCodeFromStatus(ce.getStatusCode() ));		
+		} catch( Exception x ) {
+			x.printStackTrace();
+			return Result.error( ErrorCode.INTERNAL_ERROR);						
+		}
 	}
 	
 	//TODO: Read azure documentation
@@ -263,4 +328,5 @@ public class DBCosmos implements DB {
 		default -> ErrorCode.INTERNAL_ERROR;
 		};
 	}
+
 }

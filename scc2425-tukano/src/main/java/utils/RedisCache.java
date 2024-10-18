@@ -2,15 +2,18 @@ package utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import exceptions.InvalidClassException;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import tukano.api.Short;
 import tukano.api.User;
+import tukano.api.Users;
 import tukano.impl.data.Following;
 import tukano.impl.data.Likes;
 
 //TODO: Finish this file
+//TODO: Implement interface
 public class RedisCache {
     
     // Have to make the calls to DBCosmos search this cache first before checking the database
@@ -46,7 +49,8 @@ public class RedisCache {
 	public <T> void addItem(String id, T item, Class<T> clazz) {
         try (Jedis jedis = instance.getResource()) {
 			var value = JSON.encode( item );
-            jedis.set(id, value);
+			var cacheId = getCacheId(id, clazz);
+            jedis.set(cacheId, value);
         } catch (Exception e) {
 			e.printStackTrace();
         }
@@ -54,11 +58,13 @@ public class RedisCache {
 	
 	//TODO: Find better way than else if
 	//TODO: Figure out how to use T directly
-	public <T> T getItem(String id, T item, Class<T> clazz) {
+	public <T> T getItem(String id, Class<T> clazz) {
         try (Jedis jedis = instance.getResource()) {
-			var res = JSON.decode( jedis.get(id), clazz);
+			var cacheId = getCacheId(id, clazz);
+			var res = JSON.decode( jedis.get(cacheId), clazz);
 			return res;
         } catch (Exception e) {
+			e.printStackTrace();
 			throw e;
         }
     }
@@ -67,18 +73,32 @@ public class RedisCache {
 	//TODO: Figure out how to use T directly
 	public <T> T deleteItem(String id, T item, Class<T> clazz) {
         try (Jedis jedis = instance.getResource()) {
-			jedis.del(id);
-			var res = JSON.decode( jedis.get(id), clazz);
+			var cacheId = getCacheId(id, clazz);
+			jedis.del(cacheId);
+			var res = JSON.decode( jedis.get(cacheId), clazz);
 			return res;
         } catch (Exception e) {
+			e.printStackTrace();
 			throw e;
         }
     }
 
-	//TODO: Complete function
 	private <T> String getCacheId(String id, Class<T> clazz) {
-		//Pode ser
-		return id;
+		try {
+			if (clazz.equals(Users.class)) {
+				return "user:" + id;
+			} else if (clazz.equals(Short.class)) {
+				return "short:" + id;
+			} else if (clazz.equals(Following.class)) {
+				return "following:" + id;
+			} else if (clazz.equals(Likes.class)) {
+				return "like:" + id;
+			}
+			throw new InvalidClassException("Invalid Class: " + clazz.toString());
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw e;
+		}
 	}
 
 }
