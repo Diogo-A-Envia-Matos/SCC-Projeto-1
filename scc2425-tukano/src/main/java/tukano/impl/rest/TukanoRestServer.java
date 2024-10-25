@@ -32,7 +32,8 @@ public class TukanoRestServer extends Application {
 	static {
 		System.setProperty("java.util.logging.SimpleFormatter.format", "%4$s: %5$s");
 	}
-	protected TukanoRestServer() {
+
+	public TukanoRestServer() {
 		serverURI = String.format(SERVER_BASE_URI, IP.hostname(), PORT);
 		resources.add(RestBlobsResource.class);
 		resources.add(RestUsersResource.class);

@@ -98,6 +98,7 @@ public class JavaShorts implements Shorts {
 					
 				// 	JavaBlobs.getInstance().delete(shrt.getBlobUrl(), Token.get() );
 				// });
+				return null;
 			});	
 		});
 	}
