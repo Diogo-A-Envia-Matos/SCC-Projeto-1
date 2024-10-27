@@ -32,11 +32,11 @@
 				<artifactId>tomcat7-maven-plugin</artifactId>
 				<version>2.1</version>
 					<configuration>
-						<url>http://maven:s3cret@127.0.0.1:8080/manager/text</url>
+						<url>http://tomcat:s3cret@127.0.0.1:8080/manager/text</url>
 						<server>tomcat-docker</server>
 						<update>true</update>
 						<path>/tukano</path>
-						<username>maven</username>
+						<username>tomcat</username>
 						<password>s3cret</password>
 					</configuration>
 			</plugin>

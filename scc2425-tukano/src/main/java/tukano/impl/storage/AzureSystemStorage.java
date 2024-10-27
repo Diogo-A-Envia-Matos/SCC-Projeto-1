@@ -33,12 +33,14 @@ import tukano.api.Result;
 import utils.Hash;
 import utils.IO;
 
-//TODO: Use utils.AzureIO to reduce redundancy
+//TODO: Create utils.AzureIO to reduce redundancy
+//TODO: Find out if creating new containers for each user is necessary, or if everything has to be on only one container
 public class AzureSystemStorage implements BlobStorage {
 	private final String rootDir;
 	private static final int CHUNK_SIZE = 4096;
 
 	//TODO: Add this container later
+	//Might not be necessary
 	private static final String DEFAULT_ROOT_DIR = "blobs";
 
 	//ConnectionString might change in the future
@@ -92,7 +94,6 @@ public class AzureSystemStorage implements BlobStorage {
 			
 			return ok();
 		} catch( Exception e) {
-			//TODO: Perguntar como devia tratar desta excecao
 			return error(INTERNAL_ERROR);
 		}
 	}
@@ -125,7 +126,6 @@ public class AzureSystemStorage implements BlobStorage {
 			System.out.println( "Blob size : " + arr.length);
 			return ok(arr);
 		} catch( Exception e) {
-			//TODO: Perguntar como devia tratar desta excecao
 			return error(INTERNAL_ERROR);
 		}
 	}
@@ -134,7 +134,7 @@ public class AzureSystemStorage implements BlobStorage {
 	public Result<Void> read(String path, Consumer<byte[]> sink) {
 		if (path == null)
 			return error(BAD_REQUEST);
-		
+				
 		//var file = toFile( path );
 		
 		try {
@@ -173,7 +173,6 @@ public class AzureSystemStorage implements BlobStorage {
 			}
 			
 		} catch( Exception e) {
-			//TODO: Perguntar como devia tratar desta excecao
 			return error(INTERNAL_ERROR);
 		}
 	}
@@ -199,7 +198,7 @@ public class AzureSystemStorage implements BlobStorage {
 			if( ! blob.exists() )
 				return error(NOT_FOUND);
 
-			// Download contents to BinaryData (check documentation for other alternatives)
+			// Delete blobs from Binary Data (check documentation for other alternatives)
 			blob.delete();
 
 			String[] filePath = path.split("/");
@@ -209,7 +208,6 @@ public class AzureSystemStorage implements BlobStorage {
 			
 			return ok();
 		} catch( Exception e) {
-			//TODO: Perguntar como devia tratar desta excecao
 			return error(INTERNAL_ERROR);
 		}
 
@@ -227,24 +225,20 @@ public class AzureSystemStorage implements BlobStorage {
 	}
 	
 	//TODO: Adapt this method to work with Azure
-	// private File toFile(String path) {
-	// 	var res = new File( rootDir + path );
-		
-	// 	var parent = res.getParentFile();
-	// 	if( ! parent.exists() )
-	// 		parent.mkdirs();
-		
-	// 	return res;
-	// }
+	private BlobClient toBlobClient(String path, String key) {
+		//TODO: Extract container from path
+		BlobContainerClient containerClient = new BlobContainerClientBuilder()
+														.connectionString(storageConnectionString)
+														.containerName(DEFAULT_ROOT_DIR)
+														.buildClient();
 
-	private File toFile(String path) {
-		var res = new File( rootDir + path );
-		
-		var parent = res.getParentFile();
-		if( ! parent.exists() )
-			parent.mkdirs();
-		
-		return res;
+		if (containerClient.exists()) {
+			containerClient.create();
+		}
+
+		return containerClient.getBlobClient( key);
 	}
-	
+
+
+
 }
