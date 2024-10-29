@@ -26,6 +26,7 @@ import com.azure.cosmos.models.CosmosItemResponse;
 import com.azure.cosmos.models.CosmosQueryRequestOptions;
 import com.azure.cosmos.models.PartitionKey;
 
+import exceptions.InvalidClassException;
 import tukano.api.Result;
 import tukano.api.Short;
 import tukano.api.Users;
@@ -128,31 +129,37 @@ public class DBCosmos implements DB {
 	//TODO: Decide if it's better to keep cache functions on "RedisCache", or have it be only for the cache itself
 	public <T> Result<T> getOne(String id, Class<T> clazz) {
 		try (var jedis = RedisCache.getCachePool().getResource()) {
-			if (clazz.equals(Users.class)) {
-				var user = jedis.get(USERS_CONTAINER + ":" + id);
-				if (user != null) {
-					var object = JSON.decode(user, clazz);
-					return Result.ok(object);
-				}
-			} else if (clazz.equals(Short.class)) {
-				var shrt = jedis.get(SHORTS_CONTAINER + ":" + id);
-				if (shrt != null) {
-					var object = JSON.decode(shrt, clazz);
-					return Result.ok(object);
-				}
-			} else if (clazz.equals(Following.class)) {
-				var follow = jedis.get(FOLLOWINGS_CONTAINER + ":" + id);
-				if (follow != null) {
-					var object = JSON.decode(follow, clazz);
-					return Result.ok(object);
-				}
-			} else if (clazz.equals(Likes.class)) {
-				var like = jedis.get(LIKES_CONTAINER + ":" + id);
-				if (like != null) {
-					var object = JSON.decode(like, clazz);
-					return Result.ok(object);
-				}
+			var cacheId = getCacheId(id, clazz);
+			var obj = jedis.get(cacheId);
+			if (obj != null) {
+				var object = JSON.decode(obj, clazz);
+				return Result.ok(object);
 			}
+			// if (clazz.equals(Users.class)) {
+			// 		var user = jedis.get(USERS_CONTAINER + ":" + id);
+			// if (user != null) {
+			// 		var object = JSON.decode(user, clazz);
+			// 		return Result.ok(object);
+			// 	}
+			// } else if (clazz.equals(Short.class)) {
+			// 	var shrt = jedis.get(SHORTS_CONTAINER + ":" + id);
+			// 	if (shrt != null) {
+			// 		var object = JSON.decode(shrt, clazz);
+			// 		return Result.ok(object);
+			// 	}
+			// } else if (clazz.equals(Following.class)) {
+			// 	var follow = jedis.get(FOLLOWINGS_CONTAINER + ":" + id);
+			// 	if (follow != null) {
+			// 		var object = JSON.decode(follow, clazz);
+			// 		return Result.ok(object);
+			// 	}
+			// } else if (clazz.equals(Likes.class)) {
+			// 	var like = jedis.get(LIKES_CONTAINER + ":" + id);
+			// 	if (like != null) {
+			// 		var object = JSON.decode(like, clazz);
+			// 		return Result.ok(object);
+			// 	}
+			// }
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw e;
@@ -183,19 +190,30 @@ public class DBCosmos implements DB {
 		// 	e.printStackTrace();
 		// 	throw e;
 		// }
-			return tryCatch( () -> container.readItem(id, new PartitionKey(id), clazz).getItem());
+			return tryCatch( () -> container.readItem(id, PARTITION_KEY, clazz).getItem());
 	}
 	
 	//TODO: Lookup how to delete
 	//TODO: Check if it was Result<?>
 	public <T> Result<T> deleteOne(T obj) {
 		try {
+			try (var jedis = RedisCache.getCachePool().getResource()) {
+				var id = GetId.getId(obj);
+				var clazz = obj.getClass();
+				var cacheId = getCacheId(id, clazz);
+				if (jedis.exists(id)) {
+					jedis.del(cacheId);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw e;
+			}
 			init();
 			//return Result.ok(supplierFunc.get());
 			//TODO: Get the id of the object
 			//TODO: Must delete specific object
-			//CosmosItemResponse<?> res = container.deleteItem(GetId.getId(obj), new PartitionKey(PARTITION_KEY), new CosmosItemRequestOptions());
-			CosmosItemResponse<?> res = container.deleteItem(obj, new CosmosItemRequestOptions());
+			CosmosItemResponse<?> res = container.deleteItem(GetId.getId(obj), new PartitionKey(PARTITION_KEY), new CosmosItemRequestOptions());
+			// CosmosItemResponse<?> res = container.deleteItem(obj, new CosmosItemRequestOptions());
 			if( res.getStatusCode() < 300)
 				return Result.ok(obj);
 			else
@@ -302,10 +320,6 @@ public class DBCosmos implements DB {
 	// 	// CosmosBatchResponse response = container.executeCosmosBatch(batch);
 	// 	// return Result.ok(obj);
 	// }
-	
-	// public <T> Result<T> transaction( Function<Session, Result<T>> func) {
-	// 	return Hibernate.getInstance().execute( func );
-	// }
 
 	<T> Result<T> tryCatch( Supplier<T> supplierFunc) {
 		try {
@@ -317,6 +331,24 @@ public class DBCosmos implements DB {
 		} catch( Exception x ) {
 			x.printStackTrace();
 			return Result.error( ErrorCode.INTERNAL_ERROR);						
+		}
+	}
+
+	private <T> String getCacheId(String id, Class<T> clazz) {
+		try {
+			if (clazz.equals(User.class)) {
+				return "user:" + id;
+			} else if (clazz.equals(Short.class)) {
+				return "short:" + id;
+			} else if (clazz.equals(Following.class)) {
+				return "following:" + id;
+			} else if (clazz.equals(Likes.class)) {
+				return "like:" + id;
+			}
+			throw new InvalidClassException("Invalid Class: " + clazz.toString());
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw e;
 		}
 	}
 	

@@ -17,6 +17,10 @@ import utils.Props;
 
 
 public class TukanoRestServer extends Application {
+	
+	//TODO: Test if flag works
+	public final static boolean USE_SQL = Args.contains("-SQL");
+
 	final private static Logger Log = Logger.getLogger(TukanoRestServer.class.getName());
 
 	static final String INETADDR_ANY = "0.0.0.0";

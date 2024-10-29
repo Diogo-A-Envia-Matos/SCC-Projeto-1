@@ -6,9 +6,9 @@ import exceptions.InvalidClassException;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
+import tukano.api.Blobs;
 import tukano.api.Short;
 import tukano.api.User;
-import tukano.api.Users;
 import tukano.impl.data.Following;
 import tukano.impl.data.Likes;
 
@@ -46,59 +46,61 @@ public class RedisCache {
 	}
 
 	// TODO: Decide if id is created inside or outside of RedisCache
-	public <T> void addItem(String id, T item, Class<T> clazz) {
-        try (Jedis jedis = instance.getResource()) {
-			var value = JSON.encode( item );
-			var cacheId = getCacheId(id, clazz);
-            jedis.set(cacheId, value);
-        } catch (Exception e) {
-			e.printStackTrace();
-        }
-    }
+	// public <T> void addItem(String id, T item, Class<T> clazz) {
+    //     try (Jedis jedis = instance.getResource()) {
+	// 		var value = JSON.encode( item );
+	// 		var cacheId = getCacheId(id, clazz);
+    //         jedis.set(cacheId, value);
+    //     } catch (Exception e) {
+	// 		e.printStackTrace();
+    //     }
+    // }
 	
-	//TODO: Find better way than else if
-	//TODO: Figure out how to use T directly
-	public <T> T getItem(String id, Class<T> clazz) {
-        try (Jedis jedis = instance.getResource()) {
-			var cacheId = getCacheId(id, clazz);
-			var res = JSON.decode( jedis.get(cacheId), clazz);
-			return res;
-        } catch (Exception e) {
-			e.printStackTrace();
-			throw e;
-        }
-    }
+	// //TODO: Find better way than else if
+	// //TODO: Figure out how to use T directly
+	// public <T> T getItem(String id, Class<T> clazz) {
+    //     try (Jedis jedis = instance.getResource()) {
+	// 		var cacheId = getCacheId(id, clazz);
+	// 		var res = JSON.decode( jedis.get(cacheId), clazz);
+	// 		return res;
+    //     } catch (Exception e) {
+	// 		e.printStackTrace();
+	// 		throw e;
+    //     }
+    // }
 
-	//TODO: Find better way than else if
-	//TODO: Figure out how to use T directly
-	public <T> T deleteItem(String id, T item, Class<T> clazz) {
-        try (Jedis jedis = instance.getResource()) {
-			var cacheId = getCacheId(id, clazz);
-			jedis.del(cacheId);
-			var res = JSON.decode( jedis.get(cacheId), clazz);
-			return res;
-        } catch (Exception e) {
-			e.printStackTrace();
-			throw e;
-        }
-    }
+	// //TODO: Find better way than else if
+	// //TODO: Figure out how to use T directly
+	// public <T> T deleteItem(String id, T item, Class<T> clazz) {
+    //     try (Jedis jedis = instance.getResource()) {
+	// 		var cacheId = getCacheId(id, clazz);
+	// 		var res = JSON.decode( jedis.get(cacheId), clazz);
+	// 		jedis.del(cacheId);
+	// 		return res;
+    //     } catch (Exception e) {
+	// 		e.printStackTrace();
+	// 		throw e;
+    //     }
+    // }
 
-	private <T> String getCacheId(String id, Class<T> clazz) {
-		try {
-			if (clazz.equals(Users.class)) {
-				return "user:" + id;
-			} else if (clazz.equals(Short.class)) {
-				return "short:" + id;
-			} else if (clazz.equals(Following.class)) {
-				return "following:" + id;
-			} else if (clazz.equals(Likes.class)) {
-				return "like:" + id;
-			}
-			throw new InvalidClassException("Invalid Class: " + clazz.toString());
-		} catch (Exception e) {
-			e.printStackTrace();
-			throw e;
-		}
-	}
+	// private <T> String getCacheId(String id, Class<T> clazz) {
+	// 	try {
+	// 		if (clazz.equals(Blobs.class)) {
+	// 			return "blob:" + id;
+	// 		} else if (clazz.equals(User.class)) {
+	// 			return "user:" + id;
+	// 		} else if (clazz.equals(Short.class)) {
+	// 			return "short:" + id;
+	// 		} else if (clazz.equals(Following.class)) {
+	// 			return "following:" + id;
+	// 		} else if (clazz.equals(Likes.class)) {
+	// 			return "like:" + id;
+	// 		}
+	// 		throw new InvalidClassException("Invalid Class: " + clazz.toString());
+	// 	} catch (Exception e) {
+	// 		e.printStackTrace();
+	// 		throw e;
+	// 	}
+	// }
 
 }

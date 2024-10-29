@@ -11,7 +11,8 @@ import tukano.impl.JavaShorts;
 @Singleton
 public class RestShortsResource extends RestResource implements RestShorts {
 
-	static final Shorts impl = JavaShorts.getInstance();
+	//TODO: Add diferent version of JavaShorts for PostgreSQL
+	static final Shorts impl = TukanoRestServer.USE_SQL ? JavaShorts.getInstance() : JavaShorts.getInstance();
 		
 	@Override
 	public Short createShort(String userId, String password) {
