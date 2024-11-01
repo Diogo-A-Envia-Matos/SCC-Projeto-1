@@ -10,8 +10,8 @@ import java.util.logging.Logger;
 import tukano.api.Blobs;
 import tukano.api.Result;
 import tukano.impl.rest.TukanoRestServer;
+import tukano.impl.storage.AzureSystemStorage;
 import tukano.impl.storage.BlobStorage;
-import tukano.impl.storage.FilesystemStorage;
 import utils.Hash;
 import utils.Hex;
 
@@ -30,7 +30,8 @@ public class JavaBlobs implements Blobs {
 	}
 	
 	private JavaBlobs() {
-		storage = new FilesystemStorage();
+		// storage = new FileSystemStorage();
+		storage = new AzureSystemStorage();
 		baseURI = String.format("%s/%s/", TukanoRestServer.serverURI, Blobs.NAME);
 	}
 	
@@ -38,7 +39,7 @@ public class JavaBlobs implements Blobs {
 	public Result<Void> upload(String blobId, byte[] bytes, String token) {
 		Log.info(() -> format("upload : blobId = %s, sha256 = %s, token = %s\n", blobId, Hex.of(Hash.sha256(bytes)), token));
 
-		if (!validBlobId(blobId, token))
+		if (!isValidBlobId(blobId, token))
 			return error(FORBIDDEN);
 
 		return storage.write( toPath( blobId ), bytes);
@@ -48,7 +49,7 @@ public class JavaBlobs implements Blobs {
 	public Result<byte[]> download(String blobId, String token) {
 		Log.info(() -> format("download : blobId = %s, token=%s\n", blobId, token));
 
-		if( ! validBlobId( blobId, token ) )
+		if( ! isValidBlobId( blobId, token ) )
 			return error(FORBIDDEN);
 
 		return storage.read( toPath( blobId ) );
@@ -58,7 +59,7 @@ public class JavaBlobs implements Blobs {
 	public Result<Void> downloadToSink(String blobId, Consumer<byte[]> sink, String token) {
 		Log.info(() -> format("downloadToSink : blobId = %s, token = %s\n", blobId, token));
 
-		if( ! validBlobId( blobId, token ) )
+		if( ! isValidBlobId( blobId, token ) )
 			return error(FORBIDDEN);
 
 		return storage.read( toPath(blobId), sink);
@@ -68,7 +69,7 @@ public class JavaBlobs implements Blobs {
 	public Result<Void> delete(String blobId, String token) {
 		Log.info(() -> format("delete : blobId = %s, token=%s\n", blobId, token));
 	
-		if( ! validBlobId( blobId, token ) )
+		if( ! isValidBlobId( blobId, token ) )
 			return error(FORBIDDEN);
 
 		return storage.delete( toPath(blobId));
@@ -84,8 +85,8 @@ public class JavaBlobs implements Blobs {
 		return storage.delete( toPath(userId));
 	}
 	
-	private boolean validBlobId(String blobId, String token) {		
-		System.out.println( toURL(blobId));
+	private boolean isValidBlobId(String blobId, String token) {
+		System.out.println( "validate blob:" + toURL(blobId));
 		return Token.isValid(token, toURL(blobId));
 	}
 
