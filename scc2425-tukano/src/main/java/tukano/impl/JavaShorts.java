@@ -17,6 +17,8 @@ import java.util.LinkedList;
 import java.util.UUID;
 import java.util.logging.Logger;
 
+import org.checkerframework.checker.units.qual.t;
+
 import com.azure.cosmos.models.CosmosBatch;
 
 import tukano.api.Blobs;
@@ -29,6 +31,7 @@ import tukano.impl.data.Likes;
 import tukano.impl.rest.TukanoRestServer;
 import utils.DB;
 import utils.DBCosmos;
+import utils.GetId;
 // import utils.DBHibernate;
 import utils.Operations;
 
@@ -74,7 +77,7 @@ public class JavaShorts implements Shorts {
 		if( shortId == null )
 			return error(BAD_REQUEST);
 
-		var query = format("SELECT count(*) FROM Likes l WHERE l.shortId = '%s'", shortId);
+		var query = format("SELECT count(l.shortId) FROM Likes l WHERE l.shortId = '%s'", shortId);
 		var likes = database.sql(query, Long.class);
 		return errorOrValue( database.getOne(shortId, Short.class), shrt -> shrt.copyWithLikes_And_Token( likes.get(0)));
 	}
@@ -89,15 +92,18 @@ public class JavaShorts implements Shorts {
 			return errorOrResult( okUser( shrt.getOwnerId(), password), user -> {
 				database.deleteOne(shrt);
 
-				// return database.transaction( hibernate -> {
+				var query = format("SELECT * FROM Likes WHERE Likes.shortId = '%s'", shortId);
+				var likesToDelete = database.sql(query, Likes.class);
 
-				// 	hibernate.remove( shrt);
-					
-				// 	var query = format("DELETE Likes l WHERE l.shortId = '%s'", shortId);
-				// 	hibernate.createNativeQuery( query, Likes.class).executeUpdate();
-					
-				// 	JavaBlobs.getInstance().delete(shrt.getBlobUrl(), Token.get() );
-				// });
+				var likesBatch = CosmosBatch.createCosmosBatch(DBCosmos.PARTITION_KEY);
+
+				for (Likes like: likesToDelete) {
+					likesBatch.deleteItemOperation(GetId.getId(like));
+				}
+
+				((DBCosmos) database).transaction(likesBatch, Likes.class);
+
+				JavaBlobs.getInstance().delete(shrt.getBlobUrl(), Token.get());
 				return null;
 			});	
 		});
@@ -205,20 +211,41 @@ public class JavaShorts implements Shorts {
 		var query3 = format("SELECT * FROM Likes l WHERE l.ownerId = '%s' OR l.userId = '%s'", userId, userId);
 		List<Likes> likesToRemove = database.sql(query3, Likes.class);
 
+		var shortsBatch = CosmosBatch.createCosmosBatch(DBCosmos.PARTITION_KEY);
+		var followingsBatch = CosmosBatch.createCosmosBatch(DBCosmos.PARTITION_KEY);
+		var likesBatch = CosmosBatch.createCosmosBatch(DBCosmos.PARTITION_KEY);
+
 		Map<Operations, List<Object>> operations = new HashMap<>();
 		operations.put(Operations.DELETE, new LinkedList<>());
 
 		for (Short s: shortsToRemove) {
 			operations.get(Operations.DELETE).add(s);
+			shortsBatch.deleteItemOperation(GetId.getId(s));
 		}
 		for (Following f: followingsToRemove) {
 			operations.get(Operations.DELETE).add(f);
+			followingsBatch.deleteItemOperation(GetId.getId(f));
 		}
 		for (Likes l: likesToRemove) {
 			operations.get(Operations.DELETE).add(l);
+			likesBatch.deleteItemOperation(GetId.getId(l));
 		}
 
-		return ((DBCosmos) database).transaction(operations);
+		var res1 = ((DBCosmos) database).transaction(shortsBatch, Short.class);
+		if (!res1.isOK()) {
+			return error(res1.error());
+		}
+		var res2 = ((DBCosmos) database).transaction(followingsBatch, Following.class);
+		if (!res2.isOK()) {
+			return error(res2.error());
+		}
+		var res3 = ((DBCosmos) database).transaction(shortsBatch, Likes.class);
+		if (!res3.isOK()) {
+			return error(res3.error());
+		}
+
+		// return ((DBCosmos) database).transaction(operations);
+		return ok();
 
 		// return DB.transaction( (hibernate) -> {
 						

@@ -17,7 +17,13 @@ import utils.Props;
 
 
 public class TukanoRestServer extends Application {
+	
+	//TODO: Test if flag works
+	public final static boolean USE_SQL = Props.get("DATABASE_TYPE", "noSQL").equals("noSQL") ? false : true;
+
 	final private static Logger Log = Logger.getLogger(TukanoRestServer.class.getName());
+
+	private static final String TOKEN_SECRET = "Token_secret";
 
 	static final String INETADDR_ANY = "0.0.0.0";
 	static String SERVER_BASE_URI = "http://%s:%s/rest";
@@ -34,13 +40,14 @@ public class TukanoRestServer extends Application {
 	}
 
 	public TukanoRestServer() {
+		Token.setSecret(TOKEN_SECRET);
+
 		serverURI = String.format(SERVER_BASE_URI, IP.hostname(), PORT);
 		resources.add(RestBlobsResource.class);
 		resources.add(RestUsersResource.class);
 		resources.add(RestShortsResource.class);
 		
-		// Props.load("azurekeys-region.props"); //place the props file in resources folder under java/main
-
+		Props.load("azurekeys-region.props"); //place the props file in resources folder under java/main
 	}
 
 	@Override
@@ -72,7 +79,7 @@ public class TukanoRestServer extends Application {
 // 		Args.use(args);
 		
 // 		Token.setSecret( Args.valueOf("-secret", ""));
-// //		Props.load( Args.valueOf("-props", "").split(","));
+//		Props.load( Args.valueOf("-props", "").split(","));
 		
 // 		new TukanoRestServer().start();
 // 	}

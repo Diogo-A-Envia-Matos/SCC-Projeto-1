@@ -19,7 +19,7 @@ import utils.Hash;
 public class AzureSystemStorage implements BlobStorage {
 	private static final int CHUNK_SIZE = 4096;
 	private static final String CONTAINER_NAME = "blobs";
-	// Must get the string by hand
+	// Must get the string by hand - ConnectionString might change in the future
 	private static final String storageConnectionString = "DefaultEndpointsProtocol=https;AccountName=scc54471;AccountKey=Y3VlAt+RbAknLVeO2MWnKLfi7yFPsdczv0H+VAZxbuaLH2pz304RUpSd0vwB67niUDW9rQZn5C6M+AStR0bxpQ==;EndpointSuffix=core.windows.net";
 
 	private static final Logger log = Logger.getLogger(AzureSystemStorage.class.getName());
@@ -150,4 +150,19 @@ public class AzureSystemStorage implements BlobStorage {
 			return error(INTERNAL_ERROR);
 		}
 	}
+
+    //TODO: Adapt this method to work with Azure
+    private BlobClient toBlobClient(String path, String key) {
+        //TODO: Extract container from path
+        BlobContainerClient containerClient = new BlobContainerClientBuilder()
+                .connectionString(storageConnectionString)
+                .containerName(CONTAINER_NAME)
+                .buildClient();
+
+        if (containerClient.exists()) {
+            containerClient.create();
+        }
+
+        return containerClient.getBlobClient( key);
+    }
 }

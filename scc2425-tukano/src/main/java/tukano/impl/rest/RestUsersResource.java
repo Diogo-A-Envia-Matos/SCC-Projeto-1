@@ -10,11 +10,14 @@ import tukano.impl.JavaUsers;
 
 @Singleton
 public class RestUsersResource extends RestResource implements RestUsers {
+	
+	//TODO: Add diferent version of JavaUsers for PostgreSQL
+	static final Users impl = TukanoRestServer.USE_SQL ? JavaUsers.getInstance() : JavaUsers.getInstance();
 
-	final Users impl;
-	public RestUsersResource() {
-		this.impl = JavaUsers.getInstance();
-	}
+	// final Users impl;
+	// public RestUsersResource() {
+	// 	this.impl = JavaUsers.getInstance();
+	// }
 	
 	@Override
 	public String createUser(User user) {
