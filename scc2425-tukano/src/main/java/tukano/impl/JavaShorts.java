@@ -31,8 +31,8 @@ import tukano.impl.data.Likes;
 import tukano.impl.rest.TukanoRestServer;
 import utils.DB;
 import utils.DBCosmos;
+import utils.DBHibernate;
 import utils.GetId;
-// import utils.DBHibernate;
 import utils.Operations;
 
 //TODO: Como fazer funcoes que usam queries
@@ -51,8 +51,8 @@ public class JavaShorts implements Shorts {
 	}
 	
 	private JavaShorts() {
-		database = DBCosmos.getInstance();
-		// database = DBHibernate.getInstance();
+		// database = DBCosmos.getInstance();
+		database = DBHibernate.getInstance();
 	}
 	
 	
