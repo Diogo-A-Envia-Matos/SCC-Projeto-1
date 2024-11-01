@@ -31,6 +31,11 @@ public class AzureSystemStorage implements BlobStorage {
 				.connectionString(storageConnectionString)
 				.containerName(CONTAINER_NAME)
 				.buildClient();
+
+		// TODO verify if we will have single or mutiple containers
+		if(!containerClient.exists()) {
+			containerClient.create();
+		}
 	}
 
 	@Override
@@ -150,19 +155,4 @@ public class AzureSystemStorage implements BlobStorage {
 			return error(INTERNAL_ERROR);
 		}
 	}
-
-    //TODO: Adapt this method to work with Azure
-    private BlobClient toBlobClient(String path, String key) {
-        //TODO: Extract container from path
-        BlobContainerClient containerClient = new BlobContainerClientBuilder()
-                .connectionString(storageConnectionString)
-                .containerName(CONTAINER_NAME)
-                .buildClient();
-
-        if (containerClient.exists()) {
-            containerClient.create();
-        }
-
-        return containerClient.getBlobClient( key);
-    }
 }
