@@ -35,7 +35,6 @@ import tukano.impl.data.Following;
 import tukano.impl.data.Likes;
 
 //TODO: Update this file
-//TODO: ADD Redis Cache
 //TODO: Separate Cache functions for transaction
 public class DBCosmos implements DB {
 	private static final String CONNECTION_URL = "https://sccdb70252.documents.azure.com:443/"; // replace with your own
@@ -94,6 +93,8 @@ public class DBCosmos implements DB {
 		// batch = CosmosBatch.createCosmosBatch(PARTITION_KEY);
 	}
 
+	//TODO: Check if it works
+	//TODO: Check if exceptions are correct
 	public <T> List<T> sql(String query, Class<T> clazz) {
 		try {
 			init();
@@ -115,25 +116,20 @@ public class DBCosmos implements DB {
 			
 	}
 	
-	//TODO: Update
+	//TODO: Check if it works
 	public <T> List<T> sql(Class<T> clazz, String fmt, Object ... args) {
 		try {
 			init();
 			var res = getClassContainer(clazz).queryItems(String.format(fmt, args), new CosmosQueryRequestOptions(), clazz);
 			return res.stream().toList();		
 		} catch( CosmosException ce ) {
-			//TODO: Check if null is correct
 			throw ce;
 		} catch( Exception x ) {
 			x.printStackTrace();
-			//TODO: ADD error code		
 			throw x;
 		}
 	}
 	
-	//TODO: Put objects in separate containers
-	//TODO: This function is built for cache, not database. Update it for database
-	//TODO: Decide if it's better to keep cache functions on "RedisCache", or have it be only for the cache itself
 	public <T> Result<T> getOne(String id, Class<T> clazz) {
 		try (var jedis = RedisCache.getCachePool().getResource()) {
 			var cacheId = getCacheId(id, clazz);
@@ -151,13 +147,11 @@ public class DBCosmos implements DB {
 	}
 	
 	//TODO: Lookup how to delete
-	//TODO: Check if it was Result<?>
 	public <T> Result<T> deleteOne(T obj) {
 		try {
 			init();
 			//return Result.ok(supplierFunc.get());
-			//TODO: Get the id of the object
-			//TODO: Must delete specific object
+			//TODO: Check if this delete is correct
 			CosmosItemResponse<?> res = getClassContainer(obj.getClass()).deleteItem(GetId.getId(obj), new PartitionKey(PARTITION_KEY), new CosmosItemRequestOptions());
 			// CosmosItemResponse<?> res = container.deleteItem(obj, new CosmosItemRequestOptions());
 			if( res.getStatusCode() < 300) {
@@ -182,10 +176,6 @@ public class DBCosmos implements DB {
 			x.printStackTrace();
 			return Result.error( ErrorCode.INTERNAL_ERROR);						
 		}
-
-
-
-		//return tryCatch( () -> container.deleteItem(obj, new CosmosItemRequestOptions()).getItem());
 	}
 	
 	//TODO: Insert partition key (based on object class)
@@ -248,9 +238,6 @@ public class DBCosmos implements DB {
 			x.printStackTrace();
 			return Result.error( ErrorCode.INTERNAL_ERROR);						
 		}
-
-		//TODO: Perguntar como tratar deste erro
-		// return null;
 	}
 
 	
