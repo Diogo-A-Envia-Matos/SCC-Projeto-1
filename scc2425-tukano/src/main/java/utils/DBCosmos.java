@@ -294,7 +294,6 @@ public class DBCosmos implements DB {
 	}
 	
 	//TODO: Add remaining operations
-	//TODO: Add way to cancel changes
 	//TODO: Usar RedisTransactions
 	//TODO: Devia usar transaction ou simplesmente colocar em ordem
 	//TODO: Devia implementar em lista com Operations e Objetos
