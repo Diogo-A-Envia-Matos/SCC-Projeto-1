@@ -130,6 +130,7 @@ public class DBCosmos implements DB {
 		}
 	}
 	
+	//TODO: Check if test works
 	public <T> Result<T> getOne(String id, Class<T> clazz) {
 		try (var jedis = RedisCache.getCachePool().getResource()) {
 			var cacheId = getCacheId(id, clazz);
@@ -147,6 +148,7 @@ public class DBCosmos implements DB {
 	}
 	
 	//TODO: Lookup how to delete
+	//TODO: Check if test works
 	public <T> Result<T> deleteOne(T obj) {
 		try {
 			init();
@@ -178,7 +180,7 @@ public class DBCosmos implements DB {
 		}
 	}
 	
-	//TODO: Insert partition key (based on object class)
+	//TODO: Check if test works
 	public <T> Result<T> updateOne(T obj) {
 		try {
 			var res = tryCatch( () -> getClassContainer(obj.getClass()).replaceItem(obj, GetId.getId(obj), PARTITION_KEY, new CosmosItemRequestOptions()).getItem());
@@ -209,7 +211,7 @@ public class DBCosmos implements DB {
 
 	}
 	
-	//TODO: Insert partition key (based on object class)
+	//TODO: Check if test works
 	public <T> Result<T> insertOne( T obj) {
 		try {
 			try (var jedis = RedisCache.getCachePool().getResource()) {
