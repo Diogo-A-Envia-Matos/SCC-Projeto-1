@@ -16,6 +16,8 @@ import com.azure.cosmos.models.CosmosItemResponse;
 import com.azure.cosmos.models.CosmosQueryRequestOptions;
 import com.azure.cosmos.models.PartitionKey;
 import exceptions.InvalidClassException;
+import redis.clients.jedis.Transaction;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +31,7 @@ import tukano.impl.data.Likes;
 //TODO: Update this file
 //TODO: Separate Cache functions for transaction
 public class DBCosmos implements DB {
+	//TODO: Obtain Azure values via "azurekeys-region.props"
 	// replace with your own
 	//	private static final String CONNECTION_URL = "https://sccdb70252.documents.azure.com:443/"; // replace with your own
 	// 	private static final String DB_KEY = "6RBrEE6YTE67v9v4h9MNfbgAcj4AjLAwzxQhwNeMAPFrNRcTkNFPdGhvW16Lx0zperURFz4IUgtkACDbGXfDPw==";
@@ -83,9 +86,9 @@ public class DBCosmos implements DB {
 			return;
 		db = client.getDatabase(DB_NAME);
 		userContainer = db.getContainer(USERS_CONTAINER);
-		// shortContainer = db.getContainer(SHORTS_CONTAINER);
-		// followingsContainer = db.getContainer(FOLLOWINGS_CONTAINER);
-		// likesContainer = db.getContainer(LIKES_CONTAINER);
+		shortContainer = db.getContainer(SHORTS_CONTAINER);
+		followingsContainer = db.getContainer(FOLLOWINGS_CONTAINER);
+		likesContainer = db.getContainer(LIKES_CONTAINER);
 
 		// batch = CosmosBatch.createCosmosBatch(PARTITION_KEY);
 	}
@@ -308,87 +311,152 @@ public class DBCosmos implements DB {
 			List<CosmosItemOperation> shortCosmosItemOperations = new ArrayList<CosmosItemOperation>();
 			List<CosmosItemOperation> followingCosmosItemOperations = new ArrayList<CosmosItemOperation>();
 			List<CosmosItemOperation> likeCosmosItemOperations = new ArrayList<CosmosItemOperation>();
+			
 			var addOperations = operations.get(Operations.ADD);
 			var readOperations = operations.get(Operations.READ);
 			var replaceOperations = operations.get(Operations.REPLACE);
 			var deleteOperations = operations.get(Operations.DELETE);
-			if (addOperations != null) {
-				for (Object item: addOperations) {
-					if (item.getClass().equals(User.class)) {
-						userCosmosItemOperations.add(CosmosBulkOperations.getCreateItemOperation(GetId.getId(item), PARTITION_KEY));
-					} else if (item.getClass().equals(Short.class)) {
-						shortCosmosItemOperations.add(CosmosBulkOperations.getCreateItemOperation(GetId.getId(item), PARTITION_KEY));
-					} else if (item.getClass().equals(Following.class)) {
-						followingCosmosItemOperations.add(CosmosBulkOperations.getCreateItemOperation(GetId.getId(item), PARTITION_KEY));
-					} else if (item.getClass().equals(Likes.class)) {
-						likeCosmosItemOperations.add(CosmosBulkOperations.getCreateItemOperation(GetId.getId(item), PARTITION_KEY));
+
+			Transaction cacheTransaction = null;
+			try (var jedis = RedisCache.getCachePool().getResource()) {
+				cacheTransaction = new Transaction(jedis);
+				if (addOperations != null) {
+					for (Object item: addOperations) {
+						if (item.getClass().equals(User.class)) {
+							userCosmosItemOperations.add(CosmosBulkOperations.getCreateItemOperation(GetId.getId(item), getPartitionKey(User.class)));
+						} else if (item.getClass().equals(Short.class)) {
+							shortCosmosItemOperations.add(CosmosBulkOperations.getCreateItemOperation(GetId.getId(item), getPartitionKey(Short.class)));
+						} else if (item.getClass().equals(Following.class)) {
+							followingCosmosItemOperations.add(CosmosBulkOperations.getCreateItemOperation(GetId.getId(item), getPartitionKey(Following.class)));
+						} else if (item.getClass().equals(Likes.class)) {
+							likeCosmosItemOperations.add(CosmosBulkOperations.getCreateItemOperation(GetId.getId(item), getPartitionKey(Likes.class)));
+						}
+						//TODO: Adicionar a Cache
 					}
-					//TODO: Adicionar a Cache
+				}
+				if (readOperations != null) {
+					for (Object item: readOperations) {
+						if (item.getClass().equals(User.class)) {
+							userCosmosItemOperations.add(CosmosBulkOperations.getReadItemOperation(GetId.getId(item), getPartitionKey(User.class)));
+						} else if (item.getClass().equals(Short.class)) {
+							shortCosmosItemOperations.add(CosmosBulkOperations.getReadItemOperation(GetId.getId(item), getPartitionKey(Short.class)));
+						} else if (item.getClass().equals(Following.class)) {
+							followingCosmosItemOperations.add(CosmosBulkOperations.getReadItemOperation(GetId.getId(item), getPartitionKey(Following.class)));
+						} else if (item.getClass().equals(Likes.class)) {
+							likeCosmosItemOperations.add(CosmosBulkOperations.getReadItemOperation(GetId.getId(item), getPartitionKey(Likes.class)));
+						}
+						//TODO: Ler da Cache
+					}
+				}
+				if (replaceOperations != null) {
+					for (Object item: replaceOperations) {
+						if (item.getClass().equals(User.class)) {
+							userCosmosItemOperations.add(CosmosBulkOperations.getDeleteItemOperation(GetId.getId(item), getPartitionKey(User.class)));
+						} else if (item.getClass().equals(Short.class)) {
+							shortCosmosItemOperations.add(CosmosBulkOperations.getDeleteItemOperation(GetId.getId(item), getPartitionKey(Short.class)));
+						} else if (item.getClass().equals(Following.class)) {
+							followingCosmosItemOperations.add(CosmosBulkOperations.getDeleteItemOperation(GetId.getId(item), getPartitionKey(Following.class)));
+						} else if (item.getClass().equals(Likes.class)) {
+							likeCosmosItemOperations.add(CosmosBulkOperations.getDeleteItemOperation(GetId.getId(item), getPartitionKey(Likes.class)));
+						}
+						//TODO: Trocar da Cache
+					}
+				}
+				if (deleteOperations != null) {
+					for (Object item: deleteOperations) {
+						//TODO: Remover a cache (adicionando a cacheTransaction)
+						if (item.getClass().equals(User.class)) {
+							userCosmosItemOperations.add(CosmosBulkOperations.getDeleteItemOperation(GetId.getId(item), getPartitionKey(User.class)));
+
+							// try (var jedis = RedisCache.getCachePool().getResource()) {
+							// 	var id = GetId.getId(item);
+							// 	var cacheId = getCacheId(id, User.class);
+							// 	jedis.del(cacheId);
+							// } catch( CosmosException ce ) {
+							// 	ce.printStackTrace();
+							// 	return Result.error(errorCodeFromStatus(ce.getStatusCode()));
+							// } catch( Exception x ) {
+							// 	x.printStackTrace();
+							// 	return Result.error( ErrorCode.INTERNAL_ERROR);						
+							// }
+
+						} else if (item.getClass().equals(Short.class)) {
+							shortCosmosItemOperations.add(CosmosBulkOperations.getDeleteItemOperation(GetId.getId(item), getPartitionKey(Short.class)));
+
+							// try (var jedis = RedisCache.getCachePool().getResource()) {
+							// 	var id = GetId.getId(item);
+							// 	var cacheId = getCacheId(id, User.class);
+							// 	jedis.del(cacheId);
+							// } catch( CosmosException ce ) {
+							// 	ce.printStackTrace();
+							// 	return Result.error(errorCodeFromStatus(ce.getStatusCode()));
+							// } catch( Exception x ) {
+							// 	x.printStackTrace();
+							// 	return Result.error( ErrorCode.INTERNAL_ERROR);						
+							// }
+
+						} else if (item.getClass().equals(Following.class)) {
+							followingCosmosItemOperations.add(CosmosBulkOperations.getDeleteItemOperation(GetId.getId(item), getPartitionKey(Following.class)));
+
+							// try (var jedis = RedisCache.getCachePool().getResource()) {
+							// 	var id = GetId.getId(item);
+							// 	var cacheId = getCacheId(id, User.class);
+							// 	jedis.del(cacheId);
+							// } catch( CosmosException ce ) {
+							// 	ce.printStackTrace();
+							// 	return Result.error(errorCodeFromStatus(ce.getStatusCode()));
+							// } catch( Exception x ) {
+							// 	x.printStackTrace();
+							// 	return Result.error( ErrorCode.INTERNAL_ERROR);						
+							// }
+
+						} else if (item.getClass().equals(Likes.class)) {
+							likeCosmosItemOperations.add(CosmosBulkOperations.getDeleteItemOperation(GetId.getId(item), getPartitionKey(Likes.class)));
+
+							// try (var jedis = RedisCache.getCachePool().getResource()) {
+							// 	var id = GetId.getId(item);
+							// 	var cacheId = getCacheId(id, User.class);
+							// 	jedis.del(cacheId);
+							// } catch( CosmosException ce ) {
+							// 	ce.printStackTrace();
+							// 	return Result.error(errorCodeFromStatus(ce.getStatusCode()));
+							// } catch( Exception x ) {
+							// 	x.printStackTrace();
+							// 	return Result.error( ErrorCode.INTERNAL_ERROR);						
+							// }
+						}
+					}
+				}
+				var response1 = userContainer.executeBulkOperations(userCosmosItemOperations);
+				var response2 = shortContainer.executeBulkOperations(userCosmosItemOperations);
+				var response3 = followingsContainer.executeBulkOperations(userCosmosItemOperations);
+				var response4 = likesContainer.executeBulkOperations(userCosmosItemOperations);
+				for (CosmosBulkOperationResponse<Object> res: response1) {
+					if (!res.getResponse().isSuccessStatusCode())
+						return Result.error(ErrorCode.INTERNAL_ERROR);
+				}
+				for (CosmosBulkOperationResponse<Object> res: response2) {
+					if (!res.getResponse().isSuccessStatusCode())
+						return Result.error(ErrorCode.INTERNAL_ERROR);
+				}
+				for (CosmosBulkOperationResponse<Object> res: response3) {
+					if (!res.getResponse().isSuccessStatusCode())
+						return Result.error(ErrorCode.INTERNAL_ERROR);
+				}
+				for (CosmosBulkOperationResponse<Object> res: response4) {
+					if (!res.getResponse().isSuccessStatusCode())
+						return Result.error(ErrorCode.INTERNAL_ERROR);
+				}
+				cacheTransaction.exec();
+				return Result.ok();
+			} catch( Exception x ) {
+				x.printStackTrace();
+				return Result.error( ErrorCode.INTERNAL_ERROR);						
+			} finally {
+				if (cacheTransaction != null) {
+					cacheTransaction.close();
 				}
 			}
-			if (readOperations != null) {
-				for (Object item: readOperations) {
-					if (item.getClass().equals(User.class)) {
-						userCosmosItemOperations.add(CosmosBulkOperations.getReadItemOperation(GetId.getId(item), PARTITION_KEY));
-					} else if (item.getClass().equals(Short.class)) {
-						shortCosmosItemOperations.add(CosmosBulkOperations.getReadItemOperation(GetId.getId(item), PARTITION_KEY));
-					} else if (item.getClass().equals(Following.class)) {
-						followingCosmosItemOperations.add(CosmosBulkOperations.getReadItemOperation(GetId.getId(item), PARTITION_KEY));
-					} else if (item.getClass().equals(Likes.class)) {
-						likeCosmosItemOperations.add(CosmosBulkOperations.getReadItemOperation(GetId.getId(item), PARTITION_KEY));
-					}
-					//TODO: Ler da Cache
-				}
-			}
-			if (replaceOperations != null) {
-				for (Object item: replaceOperations) {
-					if (item.getClass().equals(User.class)) {
-						userCosmosItemOperations.add(CosmosBulkOperations.getDeleteItemOperation(GetId.getId(item), PARTITION_KEY));
-					} else if (item.getClass().equals(Short.class)) {
-						shortCosmosItemOperations.add(CosmosBulkOperations.getDeleteItemOperation(GetId.getId(item), PARTITION_KEY));
-					} else if (item.getClass().equals(Following.class)) {
-						followingCosmosItemOperations.add(CosmosBulkOperations.getDeleteItemOperation(GetId.getId(item), PARTITION_KEY));
-					} else if (item.getClass().equals(Likes.class)) {
-						likeCosmosItemOperations.add(CosmosBulkOperations.getDeleteItemOperation(GetId.getId(item), PARTITION_KEY));
-					}
-					//TODO: Trocar da Cache
-				}
-			}
-			if (deleteOperations != null) {
-				for (Object item: deleteOperations) {
-					if (item.getClass().equals(User.class)) {
-						userCosmosItemOperations.add(CosmosBulkOperations.getDeleteItemOperation(GetId.getId(item), PARTITION_KEY));
-					} else if (item.getClass().equals(Short.class)) {
-						shortCosmosItemOperations.add(CosmosBulkOperations.getDeleteItemOperation(GetId.getId(item), PARTITION_KEY));
-					} else if (item.getClass().equals(Following.class)) {
-						followingCosmosItemOperations.add(CosmosBulkOperations.getDeleteItemOperation(GetId.getId(item), PARTITION_KEY));
-					} else if (item.getClass().equals(Likes.class)) {
-						likeCosmosItemOperations.add(CosmosBulkOperations.getDeleteItemOperation(GetId.getId(item), PARTITION_KEY));
-					}
-					//TODO: Remover da Cache
-				}
-			}
-			var response1 = userContainer.executeBulkOperations(userCosmosItemOperations);
-			var response2 = shortContainer.executeBulkOperations(userCosmosItemOperations);
-			var response3 = followingsContainer.executeBulkOperations(userCosmosItemOperations);
-			var response4 = likesContainer.executeBulkOperations(userCosmosItemOperations);
-			for (CosmosBulkOperationResponse<Object> res: response1) {
-				if (!res.getResponse().isSuccessStatusCode())
-					return Result.error(ErrorCode.INTERNAL_ERROR);
-			}
-			for (CosmosBulkOperationResponse<Object> res: response2) {
-				if (!res.getResponse().isSuccessStatusCode())
-					return Result.error(ErrorCode.INTERNAL_ERROR);
-			}
-			for (CosmosBulkOperationResponse<Object> res: response3) {
-				if (!res.getResponse().isSuccessStatusCode())
-					return Result.error(ErrorCode.INTERNAL_ERROR);
-			}
-			for (CosmosBulkOperationResponse<Object> res: response4) {
-				if (!res.getResponse().isSuccessStatusCode())
-					return Result.error(ErrorCode.INTERNAL_ERROR);
-			}
-			return Result.ok();
 		} catch( CosmosException ce ) {
 			//ce.printStackTrace();
 			return Result.error ( errorCodeFromStatus(ce.getStatusCode() ));		
@@ -397,30 +465,6 @@ public class DBCosmos implements DB {
 			return Result.error( ErrorCode.INTERNAL_ERROR);						
 		}
 	}
-	
-	//TODO: Read azure documentation
-	//TODO: Decidir o que fazer com transaction
-	// Nao pode fazer tudo por falta de batches, e necessario criar situacoes especiais
-	// public <T> Result<T> transaction( CosmosBatch batch) {
-	// 	try {
-	// 		init();
-	// 		CosmosBatchResponse response = container.executeCosmosBatch(batch);
-	// 		if (response.isSuccessStatusCode())
-	// 			return Result.ok();
-	// 		else {
-	// 			return Result.error(ErrorCode.CONFLICT);
-	// 		}			
-	// 	} catch( CosmosException ce ) {
-	// 		//ce.printStackTrace();
-	// 		return Result.error ( errorCodeFromStatus(ce.getStatusCode() ));		
-	// 	} catch( Exception x ) {
-	// 		x.printStackTrace();
-	// 		return Result.error( ErrorCode.INTERNAL_ERROR);						
-	// 	}
-	// 	// return tryCatch( () -> container.executeCosmosBatch(batch).getResults());
-	// 	// CosmosBatchResponse response = container.executeCosmosBatch(batch);
-	// 	// return Result.ok(obj);
-	// }
 
 	<T> Result<T> translateCosmosResponse(CosmosItemResponse<T> response) { // TODO HENRIQUE check for usages for this method
 		if (response.getStatusCode() < 300) {
