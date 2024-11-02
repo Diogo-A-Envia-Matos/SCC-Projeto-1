@@ -45,7 +45,7 @@ public class JavaUsers implements Users {
 		if( badUserInfo( user ) )
 				return error(BAD_REQUEST);
 
-		return errorOrValue( database.insertOne( user), user.getUserId() );
+		return errorOrValue( database.insertOne( user), user.getId() );
 	}
 
 	@Override
@@ -113,6 +113,6 @@ public class JavaUsers implements Users {
 	}
 	
 	private boolean badUpdateUserInfo( String userId, String pwd, User info) {
-		return (userId == null || pwd == null || info.getUserId() != null && ! userId.equals( info.getUserId()));
+		return (userId == null || pwd == null || info.getId() != null && ! userId.equals( info.getId()));
 	}
 }

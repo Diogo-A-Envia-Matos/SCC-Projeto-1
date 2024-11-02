@@ -44,8 +44,6 @@ public class DBCosmos implements DB {
 	//private static final String PARTITION_KEY = "id";
 	public static final PartitionKey PARTITION_KEY = new PartitionKey("id");
 
-	// PARTITION_KEY talvez seja "/id"
-
 	private static DBCosmos instance;
 
 	public static synchronized DBCosmos getInstance() {
@@ -145,7 +143,8 @@ public class DBCosmos implements DB {
 		try {
 
 			init();
-			final CosmosItemResponse<T> response = getClassContainer(clazz).readItem(id, PARTITION_KEY, clazz);
+			final PartitionKey partitionKey = new PartitionKey(id);
+			final CosmosItemResponse<T> response = getClassContainer(clazz).readItem(id, partitionKey, clazz);
 			return translateCosmosResponse(response);
 
 		} catch (CosmosException ce) {
@@ -221,7 +220,6 @@ public class DBCosmos implements DB {
 	}
 
 	//TODO: Check if test works
-	//TODO HENRIQUE - createUser
 	public <T> Result<T> insertOne( T obj) {
 		try {
 			// try (var jedis = RedisCache.getCachePool().getResource()) {
@@ -243,19 +241,14 @@ public class DBCosmos implements DB {
 			// 	e.printStackTrace();
 			// 	throw e;
 			// }
-			// System.out.println("trying init()..................................");
 			init();
-			// System.out.println("trying .createItem..................................");
 			CosmosItemResponse<T> response = getClassContainer(obj.getClass()).createItem(obj);
-			// System.out.println("trying translateCosmoResponse..................................");
 			return translateCosmosResponse(response);
 
 		} catch( CosmosException ce ) {
-			// System.out.println("Was a CosmosException..................................");
 			ce.printStackTrace();
 			return Result.error(errorCodeFromStatus(ce.getStatusCode()));
 		} catch( Exception x ) {
-			// System.out.println("Was an Exception..................................");
 			x.printStackTrace();
 			return Result.error(ErrorCode.INTERNAL_ERROR);
 		}
