@@ -16,6 +16,7 @@ import com.azure.cosmos.models.CosmosItemResponse;
 import com.azure.cosmos.models.CosmosQueryRequestOptions;
 import com.azure.cosmos.models.PartitionKey;
 import com.azure.cosmos.util.CosmosPagedIterable;
+import com.fasterxml.jackson.databind.JsonNode;
 import exceptions.InvalidClassException;
 import redis.clients.jedis.Transaction;
 
@@ -94,18 +95,34 @@ public class DBCosmos implements DB {
 		// batch = CosmosBatch.createCosmosBatch(PARTITION_KEY);
 	}
 
-	public <T> List<T> sql(String query, Class<T> clazz) {
+	public <T> List<T> sql(String query, Class<T> containerClazz) {
 		try {
 			init();
-			final CosmosPagedIterable<T> response = getClassContainer(clazz)
-					.queryItems(query, new CosmosQueryRequestOptions(), clazz);
+			final CosmosPagedIterable<T> response = getClassContainer(containerClazz)
+					.queryItems(query, new CosmosQueryRequestOptions(), containerClazz);
 			return response.stream().toList();
 		} catch( Exception x ) {
 			x.printStackTrace();
 			throw x;
 		}
 	}
-	
+
+	public <T, U> List<U> sql(String query, Class<T> containerClazz, Class<U> expectedClazz) {
+		try {
+			init();
+			final CosmosPagedIterable<JsonNode> response = getClassContainer(containerClazz)
+					.queryItems(query, new CosmosQueryRequestOptions(), JsonNode.class);
+
+			return response.stream()
+					.map(item -> convertToClass(item, expectedClazz))
+					.toList();
+
+		} catch( Exception x ) {
+			x.printStackTrace();
+			throw x;
+		}
+	}
+
 	//TODO: Check if it works
 	public <T> List<T> sql(Class<T> clazz, String fmt, Object ... args) {
 		try {
@@ -500,6 +517,18 @@ public class DBCosmos implements DB {
         throw new InvalidClassException("Invalid Class: " + clazz.toString());
     }
 
+	private <U> U convertToClass(JsonNode item, Class<U> outputClazz) {
+		if (outputClazz.equals(Long.class)) {
+			return (U) (Long) item.asLong();
+		}
+
+		if (outputClazz.equals(String.class)) {
+			return (U) item.asText();
+		}
+
+		throw new InvalidClassException("The following class is neither String or Long Class: " + outputClazz.toString());
+	}
+
 	private <T> Result<T> translateCosmosResponse(CosmosItemResponse<T> response) {
 		if (response.getStatusCode() < 300) {
 			return Result.ok(response.getItem());
@@ -524,5 +553,4 @@ public class DBCosmos implements DB {
 			default -> ErrorCode.INTERNAL_ERROR;
 		};
 	}
-
 }

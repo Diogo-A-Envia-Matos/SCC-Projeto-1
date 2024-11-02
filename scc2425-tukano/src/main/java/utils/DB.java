@@ -10,8 +10,20 @@ import tukano.api.Result;
 
 public interface DB {
 
-	<T> List<T> sql(String query, Class<T> clazz);
-	
+	<T> List<T> sql(String query, Class<T> containerClazz);
+
+	/**
+	 * Queries the Container relative to the containerClazz.
+	 * Returns the value a expectedClazz.
+	 * Used for queries with aggregate function for example
+	 *
+	 * @param query - string with SQL code to be sent to the CosmosDb
+	 * @param containerClazz - class that represents the container
+	 * @param expectedClazz - class of the desired output (either String or Long)
+	 * @return List of expectedClazz
+	 */
+	<T, U> List<U> sql(String query, Class<T> containerClazz, Class<U> expectedClazz);
+
 	<T> List<T> sql(Class<T> clazz, String fmt, Object ... args);
 	
 	<T> Result<T> getOne(String id, Class<T> clazz);

@@ -1,27 +1,17 @@
 package tukano.impl;
 
-import static java.lang.String.format;
-import static tukano.api.Result.error;
-import static tukano.api.Result.errorOrResult;
-import static tukano.api.Result.errorOrValue;
-import static tukano.api.Result.errorOrVoid;
-import static tukano.api.Result.ok;
-import static tukano.api.Result.ErrorCode.BAD_REQUEST;
-import static tukano.api.Result.ErrorCode.FORBIDDEN;
-//import static utils.DB.getOne;
-
-import java.util.Map;
-import java.util.HashMap;
-import java.util.List;
-import java.util.LinkedList;
-import java.util.UUID;
-import java.util.logging.Logger;
-
-import org.checkerframework.checker.units.qual.t;
+import static java.lang.String.*;
+import static tukano.api.Result.ErrorCode.*;
+import static tukano.api.Result.*;
 
 import com.azure.cosmos.models.CosmosBatch;
 import com.azure.cosmos.models.PartitionKey;
-
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.logging.Logger;
 import tukano.api.Blobs;
 import tukano.api.Result;
 import tukano.api.Short;
@@ -37,24 +27,23 @@ import utils.GetId;
 import utils.Operations;
 
 //TODO: Como fazer funcoes que usam queries
-public class JavaShorts implements Shorts {
+public class JavaHibernateShorts implements Shorts {
 
-	private static Logger Log = Logger.getLogger(JavaShorts.class.getName());
-	
+	private static Logger Log = Logger.getLogger(JavaHibernateShorts.class.getName());
+
 	private static Shorts instance;
-	
+
 	private static DB database; // Choose between CosmosDB or Hibernate
-	
+
 	synchronized public static Shorts getInstance() {
 		if( instance == null )
-			instance = new JavaShorts();
+			instance = new JavaHibernateShorts();
 		return instance;
 	}
-	
+
 	//TODO: Criar novo ficheiro que usa DBHibernate
-	private JavaShorts() {
-		database = DBCosmos.getInstance();
-		// database = DBHibernate.getInstance();
+	private JavaHibernateShorts() {
+		database = DBHibernate.getInstance();
 	}
 	
 	
@@ -79,8 +68,8 @@ public class JavaShorts implements Shorts {
 		if( shortId == null )
 			return error(BAD_REQUEST);
 
-		var query = format("SELECT count(l.shortId) FROM Likes l WHERE l.shortId = '%s'", shortId);
-		var likes = database.sql(query, Long.class);
+		var query = format("SELECT count(l.shortId) FROM Likes l WHERE l.id = '%s'", shortId);
+		var likes = database.sql(query, Likes.class, Long.class);
 		return errorOrValue( database.getOne(shortId, Short.class), shrt -> shrt.copyWithLikes_And_Token( likes.get(0)));
 	}
 
@@ -95,7 +84,7 @@ public class JavaShorts implements Shorts {
 				database.deleteOne(shrt);
 
 				var query = format("SELECT * FROM Likes WHERE Likes.shortId = '%s'", shortId);
-				var likesToDelete = database.sql(query, Likes.class);
+				var likesToDelete = database.sql(query, Short.class, Likes.class);
 
 				var likesBatch = CosmosBatch.createCosmosBatch(new PartitionKey("userId"));
 

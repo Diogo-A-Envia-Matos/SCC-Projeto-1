@@ -29,8 +29,11 @@ public class DBHibernate implements DB {
 	public <T> List<T> sql(String query, Class<T> clazz) {
 		return Hibernate.getInstance().sql(query, clazz);
 	}
-	
-	
+
+	public <T, U> List<U> sql(String query, Class<T> containerClazz, Class<U> expectedClazz) {
+		return Hibernate.getInstance().sql(query, expectedClazz);
+	}
+
 	public <T> List<T> sql(Class<T> clazz, String fmt, Object ... args) {
 		return Hibernate.getInstance().sql(String.format(fmt, args), clazz);
 	}
