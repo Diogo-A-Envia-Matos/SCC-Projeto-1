@@ -20,6 +20,7 @@ import java.util.logging.Logger;
 import org.checkerframework.checker.units.qual.t;
 
 import com.azure.cosmos.models.CosmosBatch;
+import com.azure.cosmos.models.PartitionKey;
 
 import tukano.api.Blobs;
 import tukano.api.Result;
@@ -50,9 +51,10 @@ public class JavaShorts implements Shorts {
 		return instance;
 	}
 	
+	//TODO: Criar novo ficheiro que usa DBHibernate
 	private JavaShorts() {
-		// database = DBCosmos.getInstance();
-		database = DBHibernate.getInstance();
+		database = DBCosmos.getInstance();
+		// database = DBHibernate.getInstance();
 	}
 	
 	
@@ -95,7 +97,7 @@ public class JavaShorts implements Shorts {
 				var query = format("SELECT * FROM Likes WHERE Likes.shortId = '%s'", shortId);
 				var likesToDelete = database.sql(query, Likes.class);
 
-				var likesBatch = CosmosBatch.createCosmosBatch(DBCosmos.PARTITION_KEY);
+				var likesBatch = CosmosBatch.createCosmosBatch(new PartitionKey("userId"));
 
 				for (Likes like: likesToDelete) {
 					likesBatch.deleteItemOperation(GetId.getId(like));
@@ -211,9 +213,9 @@ public class JavaShorts implements Shorts {
 		var query3 = format("SELECT * FROM Likes l WHERE l.ownerId = '%s' OR l.userId = '%s'", userId, userId);
 		List<Likes> likesToRemove = database.sql(query3, Likes.class);
 
-		var shortsBatch = CosmosBatch.createCosmosBatch(DBCosmos.PARTITION_KEY);
-		var followingsBatch = CosmosBatch.createCosmosBatch(DBCosmos.PARTITION_KEY);
-		var likesBatch = CosmosBatch.createCosmosBatch(DBCosmos.PARTITION_KEY);
+		var shortsBatch = CosmosBatch.createCosmosBatch(new PartitionKey("shortId"));
+		var followingsBatch = CosmosBatch.createCosmosBatch(new PartitionKey("followee"));
+		var likesBatch = CosmosBatch.createCosmosBatch(new PartitionKey("userId"));
 
 		Map<Operations, List<Object>> operations = new HashMap<>();
 		operations.put(Operations.DELETE, new LinkedList<>());

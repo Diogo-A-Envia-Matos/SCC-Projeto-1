@@ -45,7 +45,7 @@ public class DBCosmos implements DB {
 	private static final String FOLLOWINGS_CONTAINER = "followings";
 	private static final String LIKES_CONTAINER = "likes";
 	//private static final String PARTITION_KEY = "id";
-	public static final PartitionKey PARTITION_KEY = new PartitionKey("userId");
+	// public static final PartitionKey PARTITION_KEY = new PartitionKey("userId");
 
 	// PARTITION_KEY talvez seja "/id"
 
