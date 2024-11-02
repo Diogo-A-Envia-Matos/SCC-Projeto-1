@@ -15,6 +15,7 @@ import com.azure.cosmos.models.CosmosItemRequestOptions;
 import com.azure.cosmos.models.CosmosItemResponse;
 import com.azure.cosmos.models.CosmosQueryRequestOptions;
 import com.azure.cosmos.models.PartitionKey;
+import com.azure.cosmos.util.CosmosPagedIterable;
 import exceptions.InvalidClassException;
 import redis.clients.jedis.Transaction;
 
@@ -93,27 +94,16 @@ public class DBCosmos implements DB {
 		// batch = CosmosBatch.createCosmosBatch(PARTITION_KEY);
 	}
 
-	//TODO: Check if it works
-	//TODO: Check if exceptions are correct
 	public <T> List<T> sql(String query, Class<T> clazz) {
 		try {
 			init();
-			var res = getClassContainer(clazz).queryItems(query, new CosmosQueryRequestOptions(), clazz);
-			return res.stream().toList();		
-		} catch( CosmosException ce ) {
-			//ce.printStackTrace();
-			//TODO: ADD error code
-			//TODO: Check how to return the error
-			//TODO: Check if null is correct
-			//return Result.error ( errorCodeFromStatus(ce.getStatusCode() ));		
-			throw ce;
+			final CosmosPagedIterable<T> response = getClassContainer(clazz)
+					.queryItems(query, new CosmosQueryRequestOptions(), clazz);
+			return response.stream().toList();
 		} catch( Exception x ) {
 			x.printStackTrace();
-			//TODO: ADD error code
-			//return Result.error( ErrorCode.INTERNAL_ERROR);	
 			throw x;
 		}
-			
 	}
 	
 	//TODO: Check if it works
@@ -121,7 +111,7 @@ public class DBCosmos implements DB {
 		try {
 			init();
 			var res = getClassContainer(clazz).queryItems(String.format(fmt, args), new CosmosQueryRequestOptions(), clazz);
-			return res.stream().toList();		
+			return res.stream().toList();
 		} catch( CosmosException ce ) {
 			throw ce;
 		} catch( Exception x ) {
@@ -130,102 +120,6 @@ public class DBCosmos implements DB {
 		}
 	}
 
-	//TODO: Check if test works
-	//TODO HENRIQUE getUser
-	public <T> Result<T> getOne(String id, Class<T> clazz) {
-		// try (var jedis = RedisCache.getCachePool().getResource()) {
-		// 	init();
-		// 	var cacheId = getCacheId(id, clazz);
-		// 	var obj = jedis.get(cacheId);
-		// 	if (obj != null) {
-		// 		var object = JSON.decode(obj, clazz);
-		// 		return Result.ok(object);
-		// 	}
-		// } catch (Exception e) {
-		// 	e.printStackTrace();
-		// 	throw e;
-		// }
-		try {
-
-			init();
-			// final PartitionKey partitionKey = new PartitionKey(id);
-			final PartitionKey partitionKey = getPartitionKey(clazz);
-			final CosmosItemResponse<T> response = getClassContainer(clazz).readItem(id, partitionKey, clazz);
-			return translateCosmosResponse(response);
-
-		} catch (CosmosException ce) {
-			return Result.error(errorCodeFromStatus(ce.getStatusCode()));
-		} catch( Exception x ) {
-			x.printStackTrace();
-			return Result.error(ErrorCode.INTERNAL_ERROR);
-		}
-	}
-	
-	//TODO: Lookup how to delete
-	//TODO: Check if test works
-	public <T> Result<T> deleteOne(T obj) {
-		try {
-			init();
-			//return Result.ok(supplierFunc.get());
-			//TODO: Check if this delete is correct
-			CosmosItemResponse<?> res = getClassContainer(obj.getClass()).deleteItem(GetId.getId(obj), getPartitionKey(obj.getClass()), new CosmosItemRequestOptions());
-			// CosmosItemResponse<?> res = container.deleteItem(obj, new CosmosItemRequestOptions());
-			if( res.getStatusCode() < 300) {
-				try (var jedis = RedisCache.getCachePool().getResource()) {
-					var id = GetId.getId(obj);
-					var clazz = obj.getClass();
-					var cacheId = getCacheId(id, clazz);
-					jedis.del(cacheId);
-				} catch (Exception e) {
-					e.printStackTrace();
-					throw e;
-				}
-				return Result.ok(obj);
-			}
-			else {
-				return Result.error( ErrorCode.INTERNAL_ERROR);	
-			}
-		} catch( CosmosException ce ) {
-			//ce.printStackTrace();
-			return Result.error(errorCodeFromStatus(ce.getStatusCode()));
-		} catch( Exception x ) {
-			x.printStackTrace();
-			return Result.error( ErrorCode.INTERNAL_ERROR);						
-		}
-	}
-	
-	//TODO: Check if test works
-	public <T> Result<T> updateOne(T obj) {
-		try {
-			init();
-			var res = translateCosmosResponse( getClassContainer(obj.getClass()).replaceItem(obj, GetId.getId(obj), getPartitionKey(obj.getClass()), new CosmosItemRequestOptions()));
-			if (!res.isOK()) {
-				return Result.error(res.error());
-			}
-
-			try (var jedis = RedisCache.getCachePool().getResource()) {
-				var id = GetId.getId(obj);
-				var clazz = obj.getClass();
-				var cacheId = getCacheId(id, clazz);
-				var value = JSON.encode( obj );
-				jedis.set(cacheId, value);
-			} catch (Exception e) {
-				e.printStackTrace();
-				throw e;
-			}
-
-			return Result.ok(obj);
-		} catch( CosmosException ce ) {
-			//ce.printStackTrace();
-			return Result.error ( errorCodeFromStatus(ce.getStatusCode() ));
-		} catch( Exception x ) {
-			x.printStackTrace();
-			return Result.error( ErrorCode.INTERNAL_ERROR);						
-		}
-
-	}
-
-	//TODO: Check if test works
 	public <T> Result<T> insertOne( T obj) {
 		try {
 			// try (var jedis = RedisCache.getCachePool().getResource()) {
@@ -260,6 +154,102 @@ public class DBCosmos implements DB {
 		}
 	}
 
+	public <T> Result<T> getOne(String id, Class<T> clazz) {
+		// try (var jedis = RedisCache.getCachePool().getResource()) {
+		// 	init();
+		// 	var cacheId = getCacheId(id, clazz);
+		// 	var obj = jedis.get(cacheId);
+		// 	if (obj != null) {
+		// 		var object = JSON.decode(obj, clazz);
+		// 		return Result.ok(object);
+		// 	}
+		// } catch (Exception e) {
+		// 	e.printStackTrace();
+		// 	throw e;
+		// }
+		try {
+
+			init();
+			final PartitionKey partitionKey = new PartitionKey(id);
+			final CosmosItemResponse<T> response = getClassContainer(clazz).readItem(id, partitionKey, clazz);
+			return translateCosmosResponse(response);
+
+		} catch (CosmosException ce) {
+			return Result.error(errorCodeFromStatus(ce.getStatusCode()));
+		} catch( Exception x ) {
+			x.printStackTrace();
+			return Result.error(ErrorCode.INTERNAL_ERROR);
+		}
+	}
+
+	public <T> Result<T> updateOne(T obj) {
+		// if (!res.isOK()) {
+		// 	return Result.error(res.error());
+		// }
+		//
+		// try (var jedis = RedisCache.getCachePool().getResource()) {
+		// 	var id = GetId.getId(obj);
+		// 	var clazz = obj.getClass();
+		// 	var cacheId = getCacheId(id, clazz);
+		// 	var value = JSON.encode( obj );
+		// 	jedis.set(cacheId, value);
+		// } catch (Exception e) {
+		// 	e.printStackTrace();
+		// 	throw e;
+		// }
+		try {
+
+			init();
+			final PartitionKey partitionKey = new PartitionKey(GetId.getId(obj));
+			CosmosItemResponse<T> response = getClassContainer(obj.getClass())
+					.replaceItem(obj, GetId.getId(obj), partitionKey, new CosmosItemRequestOptions());
+			return translateCosmosResponse(response);
+
+		} catch( CosmosException ce ) {
+			//ce.printStackTrace();
+			return Result.error ( errorCodeFromStatus(ce.getStatusCode() ));
+		} catch( Exception x ) {
+			x.printStackTrace();
+			return Result.error( ErrorCode.INTERNAL_ERROR);
+		}
+
+	}
+
+	public <T> Result<T> deleteOne(T obj) {
+		try {
+			// init();
+			// //return Result.ok(supplierFunc.get());
+			// //TODO: Check if this delete is correct
+			// CosmosItemResponse<?> res = getClassContainer(obj.getClass()).deleteItem(GetId.getId(obj), new PartitionKey(PARTITION_KEY), new CosmosItemRequestOptions());
+			// // CosmosItemResponse<?> res = container.deleteItem(obj, new CosmosItemRequestOptions());
+			// if( res.getStatusCode() < 300) {
+			// 	try (var jedis = RedisCache.getCachePool().getResource()) {
+			// 		var id = GetId.getId(obj);
+			// 		var clazz = obj.getClass();
+			// 		var cacheId = getCacheId(id, clazz);
+			// 		jedis.del(cacheId);
+			// 	} catch (Exception e) {
+			// 		e.printStackTrace();
+			// 		throw e;
+			// 	}
+			// 	return Result.ok(obj);
+			// }
+			// else {
+			// 	return Result.error( ErrorCode.INTERNAL_ERROR);
+			// }
+
+			init();
+			CosmosItemResponse<Object> response = getClassContainer(obj.getClass()).deleteItem(obj, new CosmosItemRequestOptions());
+			return translateCosmosResponse(response, obj);
+
+		} catch( CosmosException ce ) {
+			//ce.printStackTrace();
+			return Result.error(errorCodeFromStatus(ce.getStatusCode()));
+		} catch( Exception x ) {
+			x.printStackTrace();
+			return Result.error(ErrorCode.INTERNAL_ERROR);
+		}
+	}
 
 	//TODO: Read azure documentation
 	//TODO: Decidir o que fazer com transaction
@@ -311,7 +301,7 @@ public class DBCosmos implements DB {
 			List<CosmosItemOperation> shortCosmosItemOperations = new ArrayList<CosmosItemOperation>();
 			List<CosmosItemOperation> followingCosmosItemOperations = new ArrayList<CosmosItemOperation>();
 			List<CosmosItemOperation> likeCosmosItemOperations = new ArrayList<CosmosItemOperation>();
-			
+
 			var addOperations = operations.get(Operations.ADD);
 			var readOperations = operations.get(Operations.READ);
 			var replaceOperations = operations.get(Operations.REPLACE);
@@ -377,7 +367,7 @@ public class DBCosmos implements DB {
 							// 	return Result.error(errorCodeFromStatus(ce.getStatusCode()));
 							// } catch( Exception x ) {
 							// 	x.printStackTrace();
-							// 	return Result.error( ErrorCode.INTERNAL_ERROR);						
+							// 	return Result.error( ErrorCode.INTERNAL_ERROR);
 							// }
 
 						} else if (item.getClass().equals(Short.class)) {
@@ -392,7 +382,7 @@ public class DBCosmos implements DB {
 							// 	return Result.error(errorCodeFromStatus(ce.getStatusCode()));
 							// } catch( Exception x ) {
 							// 	x.printStackTrace();
-							// 	return Result.error( ErrorCode.INTERNAL_ERROR);						
+							// 	return Result.error( ErrorCode.INTERNAL_ERROR);
 							// }
 
 						} else if (item.getClass().equals(Following.class)) {
@@ -407,7 +397,7 @@ public class DBCosmos implements DB {
 							// 	return Result.error(errorCodeFromStatus(ce.getStatusCode()));
 							// } catch( Exception x ) {
 							// 	x.printStackTrace();
-							// 	return Result.error( ErrorCode.INTERNAL_ERROR);						
+							// 	return Result.error( ErrorCode.INTERNAL_ERROR);
 							// }
 
 						} else if (item.getClass().equals(Likes.class)) {
@@ -422,7 +412,7 @@ public class DBCosmos implements DB {
 							// 	return Result.error(errorCodeFromStatus(ce.getStatusCode()));
 							// } catch( Exception x ) {
 							// 	x.printStackTrace();
-							// 	return Result.error( ErrorCode.INTERNAL_ERROR);						
+							// 	return Result.error( ErrorCode.INTERNAL_ERROR);
 							// }
 						}
 					}
@@ -451,7 +441,7 @@ public class DBCosmos implements DB {
 				return Result.ok();
 			} catch( Exception x ) {
 				x.printStackTrace();
-				return Result.error( ErrorCode.INTERNAL_ERROR);						
+				return Result.error( ErrorCode.INTERNAL_ERROR);
 			} finally {
 				if (cacheTransaction != null) {
 					cacheTransaction.close();
@@ -464,14 +454,6 @@ public class DBCosmos implements DB {
 			x.printStackTrace();
 			return Result.error( ErrorCode.INTERNAL_ERROR);						
 		}
-	}
-
-	<T> Result<T> translateCosmosResponse(CosmosItemResponse<T> response) { // TODO HENRIQUE check for usages for this method
-		if (response.getStatusCode() < 300) {
-			return Result.ok(response.getItem());
-		}
-
-		return Result.error(errorCodeFromStatus(response.getStatusCode()));
 	}
 
 	private <T> String getCacheId(String id, Class<T> clazz) {
@@ -505,19 +487,35 @@ public class DBCosmos implements DB {
 		throw new InvalidClassException("Invalid Class: " + clazz.toString());
 	}
 
-	private <T> PartitionKey getPartitionKey(Class<T> clazz) {
-		if (clazz.equals(User.class)) {
-			return new PartitionKey("userId");
-		} else if (clazz.equals(Short.class)) {
-			return new PartitionKey("shortId");
-		} else if (clazz.equals(Following.class)) {
-			return new PartitionKey("followee");
-		} else if (clazz.equals(Likes.class)) {
-			return new PartitionKey("userId");
+    private <T> PartitionKey getPartitionKey(Class<T> clazz) {
+        if (clazz.equals(User.class)) {
+            return new PartitionKey("userId");
+        } else if (clazz.equals(Short.class)) {
+            return new PartitionKey("shortId");
+        } else if (clazz.equals(Following.class)) {
+            return new PartitionKey("followee");
+        } else if (clazz.equals(Likes.class)) {
+            return new PartitionKey("userId");
+        }
+        throw new InvalidClassException("Invalid Class: " + clazz.toString());
+    }
+
+	private <T> Result<T> translateCosmosResponse(CosmosItemResponse<T> response) {
+		if (response.getStatusCode() < 300) {
+			return Result.ok(response.getItem());
 		}
-		throw new InvalidClassException("Invalid Class: " + clazz.toString());
+
+		return Result.error(errorCodeFromStatus(response.getStatusCode()));
 	}
-	
+
+	private <T> Result<T> translateCosmosResponse(CosmosItemResponse<Object> response, T obj) {
+		if (response.getStatusCode() < 300) {
+			return Result.ok(obj);
+		}
+
+		return Result.error(errorCodeFromStatus(response.getStatusCode()));
+	}
+
 	static Result.ErrorCode errorCodeFromStatus( int status ) {
 		return switch( status ) {
 			case 200 -> ErrorCode.OK;

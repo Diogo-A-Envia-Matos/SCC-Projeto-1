@@ -9,6 +9,7 @@ import static tukano.api.Result.ErrorCode.BAD_REQUEST;
 import static tukano.api.Result.ErrorCode.FORBIDDEN;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
@@ -88,14 +89,17 @@ public class JavaUsers implements Users {
 	}
 
 	@Override
-	public Result<List<User>> searchUsers(String pattern) {
-		Log.info( () -> format("searchUsers : patterns = %s\n", pattern));
+	public Result<List<User>> searchUsers(String p) {
+		String pattern = Objects.toString(p, "");
+		Log.info(() -> format("searchUsers : patterns = '%s'\n", pattern));
 
-		var query = format("SELECT * FROM User u WHERE UPPER(u.userId) LIKE '%%%s%%'", pattern.toUpperCase());
+		String query = format("SELECT * FROM User u WHERE UPPER(u.id) LIKE '%%%s%%'", pattern.toUpperCase());
 		var hits = database.sql(query, User.class)
 				.stream()
 				.map(User::copyWithoutPassword)
 				.toList();
+
+		Log.info(() -> format("searchUsers : nHits = %s\n", hits.size()));
 
 		return ok(hits);
 	}
