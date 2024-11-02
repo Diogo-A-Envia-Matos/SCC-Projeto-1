@@ -11,3 +11,6 @@ scc2425-tukano/.idea
 # binarios
 scc2425-tukano/target
 
+/.vscode
+/.vscode
+/scc2425-tukano/.settings

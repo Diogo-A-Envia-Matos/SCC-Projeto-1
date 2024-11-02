@@ -42,7 +42,9 @@ public class DBCosmos implements DB {
 	private static final String FOLLOWINGS_CONTAINER = "followings";
 	private static final String LIKES_CONTAINER = "likes";
 	//private static final String PARTITION_KEY = "id";
-	public static final PartitionKey PARTITION_KEY = new PartitionKey("id");
+	public static final PartitionKey PARTITION_KEY = new PartitionKey("userId");
+
+	// PARTITION_KEY talvez seja "/id"
 
 	private static DBCosmos instance;
 
@@ -143,7 +145,8 @@ public class DBCosmos implements DB {
 		try {
 
 			init();
-			final PartitionKey partitionKey = new PartitionKey(id);
+			// final PartitionKey partitionKey = new PartitionKey(id);
+			final PartitionKey partitionKey = getPartitionKey(clazz);
 			final CosmosItemResponse<T> response = getClassContainer(clazz).readItem(id, partitionKey, clazz);
 			return translateCosmosResponse(response);
 
@@ -162,7 +165,7 @@ public class DBCosmos implements DB {
 			init();
 			//return Result.ok(supplierFunc.get());
 			//TODO: Check if this delete is correct
-			CosmosItemResponse<?> res = getClassContainer(obj.getClass()).deleteItem(GetId.getId(obj), new PartitionKey(PARTITION_KEY), new CosmosItemRequestOptions());
+			CosmosItemResponse<?> res = getClassContainer(obj.getClass()).deleteItem(GetId.getId(obj), getPartitionKey(obj.getClass()), new CosmosItemRequestOptions());
 			// CosmosItemResponse<?> res = container.deleteItem(obj, new CosmosItemRequestOptions());
 			if( res.getStatusCode() < 300) {
 				try (var jedis = RedisCache.getCachePool().getResource()) {
@@ -192,7 +195,7 @@ public class DBCosmos implements DB {
 	public <T> Result<T> updateOne(T obj) {
 		try {
 			init();
-			var res = translateCosmosResponse( getClassContainer(obj.getClass()).replaceItem(obj, GetId.getId(obj), PARTITION_KEY, new CosmosItemRequestOptions()));
+			var res = translateCosmosResponse( getClassContainer(obj.getClass()).replaceItem(obj, GetId.getId(obj), getPartitionKey(obj.getClass()), new CosmosItemRequestOptions()));
 			if (!res.isOK()) {
 				return Result.error(res.error());
 			}
@@ -454,6 +457,19 @@ public class DBCosmos implements DB {
 			return followingsContainer;
 		} else if (clazz.equals(Likes.class)) {
 			return likesContainer;
+		}
+		throw new InvalidClassException("Invalid Class: " + clazz.toString());
+	}
+
+	private <T> PartitionKey getPartitionKey(Class<T> clazz) {
+		if (clazz.equals(User.class)) {
+			return new PartitionKey("userId");
+		} else if (clazz.equals(Short.class)) {
+			return new PartitionKey("shortId");
+		} else if (clazz.equals(Following.class)) {
+			return new PartitionKey("followee");
+		} else if (clazz.equals(Likes.class)) {
+			return new PartitionKey("userId");
 		}
 		throw new InvalidClassException("Invalid Class: " + clazz.toString());
 	}
