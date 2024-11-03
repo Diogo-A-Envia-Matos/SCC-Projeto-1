@@ -70,7 +70,7 @@ public class JavaHibernateShorts implements Shorts {
 
 		var query = format("SELECT count(l.shortId) FROM Likes l WHERE l.id = '%s'", shortId);
 		var likes = database.sql(query, Likes.class, Long.class);
-		return errorOrValue( database.getOne(shortId, Short.class), shrt -> shrt.copyWithLikes_And_Token( likes.get(0)));
+		return errorOrValue( database.getOne(shortId,shortId, Short.class), shrt -> shrt.copyWithLikes_And_Token( likes.get(0)));
 	}
 
 	

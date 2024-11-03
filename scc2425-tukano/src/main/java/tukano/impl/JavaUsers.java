@@ -56,7 +56,7 @@ public class JavaUsers implements Users {
 		if (userId == null)
 			return error(BAD_REQUEST);
 		
-		return validatedUserOrError( database.getOne( userId, User.class), pwd);
+		return validatedUserOrError( database.getOne( userId, userId, User.class), pwd);
 	}
 
 	@Override
@@ -66,7 +66,7 @@ public class JavaUsers implements Users {
 		if (badUpdateUserInfo(userId, pwd, other))
 			return error(BAD_REQUEST);
 
-		return errorOrResult( validatedUserOrError(database.getOne( userId, User.class), pwd), user -> database.updateOne( user.updateFrom(other)));
+		return errorOrResult( validatedUserOrError(database.getOne( userId, userId, User.class), pwd), user -> database.updateOne( user.updateFrom(other)));
 	}
 
 	@Override
@@ -76,7 +76,7 @@ public class JavaUsers implements Users {
 		if (userId == null || pwd == null )
 			return error(BAD_REQUEST);
 
-		return errorOrResult( validatedUserOrError(database.getOne( userId, User.class), pwd), user -> {
+		return errorOrResult( validatedUserOrError(database.getOne( userId, userId, User.class), pwd), user -> {
 
 			// Delete user shorts and related info asynchronously in a separate thread
 			Executors.defaultThreadFactory().newThread( () -> {

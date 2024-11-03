@@ -39,7 +39,7 @@ public class DBHibernate implements DB {
 	}
 	
 	
-	public <T> Result<T> getOne(String id, Class<T> clazz) {
+	public <T> Result<T> getOne(String id, String partition, Class<T> clazz) {
 		return Hibernate.getInstance().getOne(id, clazz);
 	}
 	

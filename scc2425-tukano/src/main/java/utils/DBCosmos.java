@@ -145,6 +145,7 @@ public class DBCosmos implements DB {
 
 	public <T> Result<T> insertOne( T obj) {
 		try {
+			// TODO HENRIQUE discomment this after you make redis cache setup
 			try (var jedis = RedisCache.getCachePool().getResource()) {
 				var id = GetId.getId(obj);
 				var clazz = obj.getClass();
@@ -155,6 +156,7 @@ public class DBCosmos implements DB {
 				}
 				init();
 				CosmosItemResponse<T> response = getClassContainer(obj.getClass()).createItem(obj);
+				// return translateCosmosResponse(response);
 				var res = translateCosmosResponse(response);
 				if (!res.isOK()) {
 					return Result.error(res.error());
@@ -176,8 +178,9 @@ public class DBCosmos implements DB {
 		}
 	}
 
-	public <T> Result<T> getOne(String id, Class<T> clazz) {
+	public <T> Result<T> getOne(String id, String partition, Class<T> clazz) {
 		try {
+			// TODO HENRIQUE discomment this after you make redis cache setup
 			try (var jedis = RedisCache.getCachePool().getResource()) {
 				var cacheId = getCacheId(id, clazz);
 				var obj = jedis.get(cacheId);
@@ -191,7 +194,7 @@ public class DBCosmos implements DB {
 			}
 
 			init();
-			final PartitionKey partitionKey = new PartitionKey(id);
+			final PartitionKey partitionKey = new PartitionKey(partition);
 			final CosmosItemResponse<T> response = getClassContainer(clazz).readItem(id, partitionKey, clazz);
 			return translateCosmosResponse(response);
 
@@ -204,10 +207,7 @@ public class DBCosmos implements DB {
 	}
 
 	public <T> Result<T> updateOne(T obj) {
-		// if (!res.isOK()) {
-		// 	return Result.error(res.error());
-		// }
-		//
+		// TODO HENRIQUE discomment this after you make redis cache setup
 		try (var jedis = RedisCache.getCachePool().getResource()) {
 			var id = GetId.getId(obj);
 			var clazz = obj.getClass();
@@ -237,6 +237,8 @@ public class DBCosmos implements DB {
 	}
 
 	public <T> Result<T> deleteOne(T obj) {
+		// TODO HENRIQUE discomment this after you make redis cache setup
+		// try {
 		try (var jedis = RedisCache.getCachePool().getResource()) {
 			var id = GetId.getId(obj);
 			var clazz = obj.getClass();
@@ -555,8 +557,6 @@ public class DBCosmos implements DB {
 		}
 
 		if (outputClazz.equals(String.class)) {
-			// System.out.println("-----------------------------------json: " + item);
-			// System.out.println("-----------------------------------json: " + item.elements().next().asText());
 			return (U) item.elements().next().asText();
 		}
 

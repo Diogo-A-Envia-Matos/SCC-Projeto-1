@@ -26,7 +26,7 @@ public interface DB {
 
 	<T> List<T> sql(Class<T> clazz, String fmt, Object ... args);
 	
-	<T> Result<T> getOne(String id, Class<T> clazz);
+	<T> Result<T> getOne(String id, String partition, Class<T> clazz);
 	
 	<T> Result<T> deleteOne(T obj);
 

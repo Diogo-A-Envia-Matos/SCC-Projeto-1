@@ -4,6 +4,8 @@ import static java.lang.String.*;
 import static tukano.api.Result.ErrorCode.*;
 import static tukano.api.Result.*;
 
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Logger;
@@ -17,6 +19,7 @@ import tukano.impl.data.Likes;
 import tukano.impl.rest.TukanoRestServer;
 import utils.DB;
 import utils.DBCosmos;
+import utils.GetId;
 
 //TODO: Como fazer funcoes que usam queries
 public class JavaCosmosShorts implements Shorts {
@@ -60,7 +63,7 @@ public class JavaCosmosShorts implements Shorts {
 
 		var query = format("SELECT count(l.shortId) FROM Likes l WHERE l.id = '%s'", shortId);
 		var likes = database.sql(query, Likes.class, Long.class);
-		return errorOrValue( database.getOne(shortId, Short.class), shrt -> shrt.copyWithLikes_And_Token( likes.get(0)));
+		return errorOrValue( database.getOne(shortId, shortId, Short.class), shrt -> shrt.copyWithLikes_And_Token( likes.get(0)));
 	}
 
 	
@@ -102,7 +105,11 @@ public class JavaCosmosShorts implements Shorts {
 	@Override
 	public Result<Void> follow(String userId1, String userId2, boolean isFollowing, String password) {
 		Log.info(() -> format("follow : userId1 = %s, userId2 = %s, isFollowing = %s, pwd = %s\n", userId1, userId2, isFollowing, password));
-	
+
+		var res = database.getOne(Following.buildId(userId1, userId2), userId1, Following.class);
+		if (res.isOK() && isFollowing) {
+			return Result.error(CONFLICT);
+		}
 		
 		return errorOrResult( okUser(userId1, password), user -> {
 			var f = new Following(userId1, userId2);
@@ -115,14 +122,18 @@ public class JavaCosmosShorts implements Shorts {
 		Log.info(() -> format("followers : userId = %s, pwd = %s\n", userId, password));
 
 		var query = format("SELECT f.follower FROM Following f WHERE f.followee = '%s'", userId);		
-		return errorOrValue( okUser(userId, password), database.sql(query, String.class));
+		return errorOrValue( okUser(userId, password), database.sql(query, Following.class, String.class));
 	}
 
 	@Override
 	public Result<Void> like(String shortId, String userId, boolean isLiked, String password) {
 		Log.info(() -> format("like : shortId = %s, userId = %s, isLiked = %s, pwd = %s\n", shortId, userId, isLiked, password));
 
-		
+		var res = database.getOne(Likes.buildId(userId, shortId), userId, Likes.class);
+		if (res.isOK() && isLiked) {
+			return Result.error(CONFLICT);
+		}
+
 		return errorOrResult( getShort(shortId), shrt -> {
 			var l = new Likes(userId, shortId, shrt.getOwnerId());
 			return errorOrVoid( okUser( userId, password), isLiked ? database.insertOne( l ) : database.deleteOne( l ));	
@@ -137,7 +148,7 @@ public class JavaCosmosShorts implements Shorts {
 			
 			var query = format("SELECT l.userId FROM Likes l WHERE l.shortId = '%s'", shortId);					
 			
-			return errorOrValue( okUser( shrt.getOwnerId(), password ), database.sql(query, String.class));
+			return errorOrValue( okUser( shrt.getOwnerId(), password ), database.sql(query, Likes.class, String.class));
 		});
 	}
 
@@ -145,15 +156,30 @@ public class JavaCosmosShorts implements Shorts {
 	public Result<List<String>> getFeed(String userId, String password) {
 		Log.info(() -> format("getFeed : userId = %s, pwd = %s\n", userId, password));
 
-		final var QUERY_FMT = """
-				SELECT s.shortId, s.timestamp FROM Short s WHERE	s.ownerId = '%s'				
-				UNION			
-				SELECT s.shortId, s.timestamp FROM Short s, Following f 
-					WHERE 
-						f.followee = s.ownerId AND f.follower = '%s' 
-				ORDER BY s.timestamp DESC""";
+		return errorOrValue( okUser(userId, password), user -> {
+			final String queryFollowee = String.format("SELECT f.followee FROM Followings f WHERE f.follower = '%s'", userId);
+			// System.out.println("-------------------------------queryFollowee: "+ queryFollowee);
+			final List<String> followees = database.sql(queryFollowee, Following.class, String.class);
 
-		return errorOrValue( okUser( userId, password), database.sql( format(QUERY_FMT, userId, userId), String.class));		
+			final String queryShorts = String.format("SELECT * FROM Shorts s WHERE s.ownerId IN ('%s', %s)",userId, formatStringCollection(followees));
+			// System.out.println("-------------------------------queryShorts: "+ queryShorts);
+			return database.sql(queryShorts, Short.class, String.class);
+		});
+
+	}
+	private String formatStringCollection(List<String> followees) {
+		final Iterator<String> iterator = followees.iterator();
+
+		if (! iterator.hasNext()) {
+			return "";
+		}
+		String res = String.format("'%s'", iterator.next());
+
+		while (iterator.hasNext()){
+			String s = String.format("', %s'", iterator.next());
+			res = res.concat(s);
+		}
+		return res;
 	}
 
 	@Override

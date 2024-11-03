@@ -8,18 +8,27 @@ import jakarta.persistence.Id;
 @Entity
 public class Following{
 
-	@Id 
+	@Id
+	String id;
+
 	String follower;
 	
-	@Id 
 	String followee;
 
 	Following() {}
 
 	public Following(String follower, String followee) {
-		super();
 		this.follower = follower;
 		this.followee = followee;
+		this.id = buildId(follower, followee);
+	}
+
+	public String getId() {
+		return id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
 	}
 
 	public String getFollower() {
@@ -59,6 +68,8 @@ public class Following{
 	public String toString() {
 		return "Following [follower=" + follower + ", followee=" + followee + "]";
 	}
-	
-	
+
+	public static String buildId(String follower, String followee) {
+		return String.format("%s-%s", follower, followee);
+	}
 }
