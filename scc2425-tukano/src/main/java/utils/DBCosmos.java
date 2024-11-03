@@ -34,18 +34,16 @@ import tukano.api.Short;
 import tukano.api.User;
 import tukano.impl.data.Following;
 import tukano.impl.data.Likes;
+import utils.Props;
 
 //TODO: Update this file
 //TODO: Separate Cache functions for transaction
 public class DBCosmos implements DB {
 	//TODO: Obtain Azure values via "azurekeys-region.props"
 	// replace with your own
-	private static final String CONNECTION_URL = "https://sccdb70252.documents.azure.com:443/"; // replace with your own
-	private static final String DB_KEY = "hZp5u2lmvfKBB6b9ENyjbZ2ZMbK5nhYKw0LSxhHKaomkHsX6xxs5QWSG7CeXXotxwiRdwktgwGXOACDbiplKhA==";
-	private static final String DB_NAME = "cosmosdb70252";
-	// private static final String CONNECTION_URL = "https://scc54471.documents.azure.com:443/";
-	// private static final String DB_KEY = "SiA2WxsLm08Rou3dmZrpkhTTCyPbQoqU3jlH6EAtGp7vKQJtKA5XR68Pw5Ry2ooZKrO4lA56D3LLACDbarbfKg==";
-	// private static final String DB_NAME = "scc54471";
+	private static final String CONNECTION_URL = Props.get("COSMOSDB_URL", ""); // replace with your own
+	private static final String DB_KEY = Props.get("COSMOSDB_KEY", "");
+	private static final String DB_NAME = Props.get("COSMOSDB_DATABASE", "");
 
 	private static final String USERS_CONTAINER = "users";
 	private static final String SHORTS_CONTAINER = "shorts";
@@ -156,7 +154,6 @@ public class DBCosmos implements DB {
 				}
 				init();
 				CosmosItemResponse<T> response = getClassContainer(obj.getClass()).createItem(obj);
-				// return translateCosmosResponse(response);
 				var res = translateCosmosResponse(response);
 				if (!res.isOK()) {
 					return Result.error(res.error());
@@ -180,7 +177,6 @@ public class DBCosmos implements DB {
 
 	public <T> Result<T> getOne(String id, String partition, Class<T> clazz) {
 		try {
-			// TODO HENRIQUE discomment this after you make redis cache setup
 			try (var jedis = RedisCache.getCachePool().getResource()) {
 				var cacheId = getCacheId(id, clazz);
 				var obj = jedis.get(cacheId);
@@ -207,7 +203,6 @@ public class DBCosmos implements DB {
 	}
 
 	public <T> Result<T> updateOne(T obj) {
-		// TODO HENRIQUE discomment this after you make redis cache setup
 		try (var jedis = RedisCache.getCachePool().getResource()) {
 			var id = GetId.getId(obj);
 			var clazz = obj.getClass();
@@ -250,9 +245,6 @@ public class DBCosmos implements DB {
 			// CosmosItemResponse<?> res = getClassContainer(obj.getClass()).deleteItem(GetId.getId(obj), getPartitionKey(obj.getClass()), new CosmosItemRequestOptions());
 			CosmosItemResponse<Object> response = getClassContainer(obj.getClass()).deleteItem(obj, new CosmosItemRequestOptions());
 			return translateCosmosResponse(response, obj);
-			// //return Result.ok(supplierFunc.get());
-			// init();
-			// return translateCosmosResponse(response, obj);
 
 		} catch( CosmosException ce ) {
 			//ce.printStackTrace();
@@ -264,11 +256,11 @@ public class DBCosmos implements DB {
 	}
 
 	public <T> List<Result<T>> deleteCollection(List<T> targets) {
-
 		return targets.stream()
 				.map(t -> deleteOne(t))
 				.toList();
 
+				// TODO HENRIQUE
 		// try {
 		// 	init();
 		// 	if (targets.isEmpty()) {
@@ -279,7 +271,7 @@ public class DBCosmos implements DB {
 		// 	List<CosmosItemOperation> operations = targets.stream()
 		// 			.map(target -> );
 		//
-		// 	CosmosItemOperation bulkDeleteOperation = getClassContainer(targets.get(0).getClass()).executeCosmosBatch(); // TODO HENRIQUE
+		// 	CosmosItemOperation bulkDeleteOperation = getClassContainer(targets.get(0).getClass()).executeCosmosBatch(); 
 		// 	return Result.ok();
 		//
 		// } catch( Exception x ) {
@@ -376,94 +368,72 @@ public class DBCosmos implements DB {
 				}
 				if (readOperations != null) {
 					for (Object item: readOperations) {
+						var id = GetId.getId(item);
 						if (item.getClass().equals(User.class)) {
-							userCosmosItemOperations.add(CosmosBulkOperations.getReadItemOperation(GetId.getId(item), getPartitionKey(User.class)));
+							userCosmosItemOperations.add(CosmosBulkOperations.getReadItemOperation(id, getPartitionKey(User.class)));
+							
+							cacheTransaction.get(getCacheId(id, User.class));
 						} else if (item.getClass().equals(Short.class)) {
-							shortCosmosItemOperations.add(CosmosBulkOperations.getReadItemOperation(GetId.getId(item), getPartitionKey(Short.class)));
+							shortCosmosItemOperations.add(CosmosBulkOperations.getReadItemOperation(id, getPartitionKey(Short.class)));
+							
+							cacheTransaction.get(getCacheId(id, Short.class));
 						} else if (item.getClass().equals(Following.class)) {
-							followingCosmosItemOperations.add(CosmosBulkOperations.getReadItemOperation(GetId.getId(item), getPartitionKey(Following.class)));
+							followingCosmosItemOperations.add(CosmosBulkOperations.getReadItemOperation(id, getPartitionKey(Following.class)));
+							
+							cacheTransaction.get(getCacheId(id, Following.class));
 						} else if (item.getClass().equals(Likes.class)) {
-							likeCosmosItemOperations.add(CosmosBulkOperations.getReadItemOperation(GetId.getId(item), getPartitionKey(Likes.class)));
+							likeCosmosItemOperations.add(CosmosBulkOperations.getReadItemOperation(id, getPartitionKey(Likes.class)));
+							
+							cacheTransaction.get(getCacheId(id, Likes.class));
 						}
 						//TODO: Ler da Cache
 					}
 				}
 				if (replaceOperations != null) {
 					for (Object item: replaceOperations) {
+						var id = GetId.getId(item);
 						if (item.getClass().equals(User.class)) {
-							userCosmosItemOperations.add(CosmosBulkOperations.getDeleteItemOperation(GetId.getId(item), getPartitionKey(User.class)));
+							userCosmosItemOperations.add(CosmosBulkOperations.getReplaceItemOperation(GetId.getId(item), item, getPartitionKey(User.class)));
+							
+							var value = JSON.encode( item );
+							cacheTransaction.set(getCacheId(id, User.class), value);
 						} else if (item.getClass().equals(Short.class)) {
-							shortCosmosItemOperations.add(CosmosBulkOperations.getDeleteItemOperation(GetId.getId(item), getPartitionKey(Short.class)));
+							userCosmosItemOperations.add(CosmosBulkOperations.getReplaceItemOperation(GetId.getId(item), item, getPartitionKey(Short.class)));
+							
+							var value = JSON.encode( item );
+							cacheTransaction.set(getCacheId(id, Short.class), value);
 						} else if (item.getClass().equals(Following.class)) {
-							followingCosmosItemOperations.add(CosmosBulkOperations.getDeleteItemOperation(GetId.getId(item), getPartitionKey(Following.class)));
+							userCosmosItemOperations.add(CosmosBulkOperations.getReplaceItemOperation(GetId.getId(item), item, getPartitionKey(Following.class)));
+							
+							var value = JSON.encode( item );
+							cacheTransaction.set(getCacheId(id, Following.class), value);
 						} else if (item.getClass().equals(Likes.class)) {
-							likeCosmosItemOperations.add(CosmosBulkOperations.getDeleteItemOperation(GetId.getId(item), getPartitionKey(Likes.class)));
+							userCosmosItemOperations.add(CosmosBulkOperations.getReplaceItemOperation(GetId.getId(item), item, getPartitionKey(Likes.class)));
+							
+							var value = JSON.encode( item );
+							cacheTransaction.set(getCacheId(id, Likes.class), value);
 						}
-						//TODO: Trocar da Cache
 					}
 				}
 				if (deleteOperations != null) {
 					for (Object item: deleteOperations) {
-						//TODO: Remover a cache (adicionando a cacheTransaction)
+						var id = GetId.getId(item);
 						if (item.getClass().equals(User.class)) {
 							userCosmosItemOperations.add(CosmosBulkOperations.getDeleteItemOperation(GetId.getId(item), getPartitionKey(User.class)));
 
-							// try (var jedis = RedisCache.getCachePool().getResource()) {
-							// 	var id = GetId.getId(item);
-							// 	var cacheId = getCacheId(id, User.class);
-							// 	jedis.del(cacheId);
-							// } catch( CosmosException ce ) {
-							// 	ce.printStackTrace();
-							// 	return Result.error(errorCodeFromStatus(ce.getStatusCode()));
-							// } catch( Exception x ) {
-							// 	x.printStackTrace();
-							// 	return Result.error( ErrorCode.INTERNAL_ERROR);
-							// }
-
+							cacheTransaction.del(getCacheId(id, User.class));
 						} else if (item.getClass().equals(Short.class)) {
 							shortCosmosItemOperations.add(CosmosBulkOperations.getDeleteItemOperation(GetId.getId(item), getPartitionKey(Short.class)));
 
-							// try (var jedis = RedisCache.getCachePool().getResource()) {
-							// 	var id = GetId.getId(item);
-							// 	var cacheId = getCacheId(id, User.class);
-							// 	jedis.del(cacheId);
-							// } catch( CosmosException ce ) {
-							// 	ce.printStackTrace();
-							// 	return Result.error(errorCodeFromStatus(ce.getStatusCode()));
-							// } catch( Exception x ) {
-							// 	x.printStackTrace();
-							// 	return Result.error( ErrorCode.INTERNAL_ERROR);
-							// }
-
+							cacheTransaction.del(getCacheId(id, Short.class));
 						} else if (item.getClass().equals(Following.class)) {
 							followingCosmosItemOperations.add(CosmosBulkOperations.getDeleteItemOperation(GetId.getId(item), getPartitionKey(Following.class)));
 
-							// try (var jedis = RedisCache.getCachePool().getResource()) {
-							// 	var id = GetId.getId(item);
-							// 	var cacheId = getCacheId(id, User.class);
-							// 	jedis.del(cacheId);
-							// } catch( CosmosException ce ) {
-							// 	ce.printStackTrace();
-							// 	return Result.error(errorCodeFromStatus(ce.getStatusCode()));
-							// } catch( Exception x ) {
-							// 	x.printStackTrace();
-							// 	return Result.error( ErrorCode.INTERNAL_ERROR);
-							// }
-
+							cacheTransaction.del(getCacheId(id, Following.class));
 						} else if (item.getClass().equals(Likes.class)) {
 							likeCosmosItemOperations.add(CosmosBulkOperations.getDeleteItemOperation(GetId.getId(item), getPartitionKey(Likes.class)));
 
-							// try (var jedis = RedisCache.getCachePool().getResource()) {
-							// 	var id = GetId.getId(item);
-							// 	var cacheId = getCacheId(id, User.class);
-							// 	jedis.del(cacheId);
-							// } catch( CosmosException ce ) {
-							// 	ce.printStackTrace();
-							// 	return Result.error(errorCodeFromStatus(ce.getStatusCode()));
-							// } catch( Exception x ) {
-							// 	x.printStackTrace();
-							// 	return Result.error( ErrorCode.INTERNAL_ERROR);
-							// }
+							cacheTransaction.del(getCacheId(id, Likes.class));
 						}
 					}
 				}
