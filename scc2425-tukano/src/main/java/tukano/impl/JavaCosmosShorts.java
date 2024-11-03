@@ -183,9 +183,8 @@ public class JavaCosmosShorts implements Shorts {
 	public Result<Void> deleteAllShorts(String userId, String password, String token) {
 		Log.info(() -> format("deleteAllShorts : userId = %s, password = %s, token = %s\n", userId, password, token));
 
-		//TODO fix the token
-		// if( ! Token.isValid( token, userId ) )
-		// 	return error(FORBIDDEN);
+		if( ! Token.isValid( token, userId ) )
+			return error(FORBIDDEN);
 
 		var query1 = format("SELECT * FROM Short s WHERE s.ownerId = '%s'", userId);
 		List<Short> shortsToRemove = database.sql(query1, Short.class);
