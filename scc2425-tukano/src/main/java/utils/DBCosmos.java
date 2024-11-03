@@ -50,10 +50,6 @@ public class DBCosmos implements DB {
 	private static final String FOLLOWINGS_CONTAINER = "followings";
 	private static final String LIKES_CONTAINER = "likes";
 	private static final Logger log = LoggerFactory.getLogger(DBCosmos.class);
-	//private static final String PARTITION_KEY = "id";
-	// public static final PartitionKey PARTITION_KEY = new PartitionKey("userId");
-
-	// PARTITION_KEY talvez seja "/id"
 
 	private static DBCosmos instance;
 
@@ -143,7 +139,6 @@ public class DBCosmos implements DB {
 
 	public <T> Result<T> insertOne( T obj) {
 		try {
-			// TODO HENRIQUE discomment this after you make redis cache setup
 			try (var jedis = RedisCache.getCachePool().getResource()) {
 				var id = GetId.getId(obj);
 				var clazz = obj.getClass();
@@ -222,7 +217,6 @@ public class DBCosmos implements DB {
 			return translateCosmosResponse(response);
 
 		} catch( CosmosException ce ) {
-			//ce.printStackTrace();
 			return Result.error ( errorCodeFromStatus(ce.getStatusCode() ));
 		} catch( Exception x ) {
 			x.printStackTrace();
@@ -232,7 +226,6 @@ public class DBCosmos implements DB {
 	}
 
 	public <T> Result<T> deleteOne(T obj) {
-		// TODO HENRIQUE discomment this after you make redis cache setup
 		// try {
 		try (var jedis = RedisCache.getCachePool().getResource()) {
 			var id = GetId.getId(obj);
@@ -240,14 +233,11 @@ public class DBCosmos implements DB {
 			var cacheId = getCacheId(id, clazz);
 			jedis.del(cacheId);
 
-			//TODO: Check if this delete is correct
 			init();
-			// CosmosItemResponse<?> res = getClassContainer(obj.getClass()).deleteItem(GetId.getId(obj), getPartitionKey(obj.getClass()), new CosmosItemRequestOptions());
 			CosmosItemResponse<Object> response = getClassContainer(obj.getClass()).deleteItem(obj, new CosmosItemRequestOptions());
 			return translateCosmosResponse(response, obj);
 
 		} catch( CosmosException ce ) {
-			//ce.printStackTrace();
 			return Result.error(errorCodeFromStatus(ce.getStatusCode()));
 		} catch( Exception x ) {
 			x.printStackTrace();
@@ -527,7 +517,7 @@ public class DBCosmos implements DB {
 		}
 
 		if (outputClazz.equals(String.class)) {
-			return (U) item.elements().next().asText();
+			return (U) item.toString();
 		}
 
 		throw new InvalidClassException("The following class is neither String or Long Class: " + outputClazz.toString());
