@@ -3,19 +3,14 @@ package tukano.impl.rest;
 import jakarta.inject.Singleton;
 import tukano.api.Blobs;
 import tukano.api.rest.RestBlobs;
-import tukano.impl.JavaBlobs;
+import tukano.impl.JavaAzureBlobs;
+import tukano.impl.JavaFileBlobs;
 
 @Singleton
 public class RestBlobsResource extends RestResource implements RestBlobs {
 
 	//TODO: Add diferent version of JavaBlobs for PostgreSQL
-	static final Blobs impl = TukanoRestServer.USE_SQL ? JavaBlobs.getInstance() : JavaBlobs.getInstance();
-	
-	// final Blobs impl;
-	
-	// public RestBlobsResource() {
-	// 	this.impl = JavaBlobs.getInstance();
-	// }
+	static final Blobs impl = TukanoRestServer.USE_SQL ? JavaFileBlobs.getInstance() : JavaAzureBlobs.getInstance();
 
 	@Override
 	public void upload(String blobId, byte[] bytes, String token) {

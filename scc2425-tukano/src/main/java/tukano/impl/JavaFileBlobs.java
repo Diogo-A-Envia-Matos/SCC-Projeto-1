@@ -1,37 +1,34 @@
 package tukano.impl;
 
-import static java.lang.String.format;
-import static tukano.api.Result.error;
-import static tukano.api.Result.ErrorCode.FORBIDDEN;
+import static java.lang.String.*;
+import static tukano.api.Result.ErrorCode.*;
+import static tukano.api.Result.*;
 
-import java.util.function.Consumer;
 import java.util.logging.Logger;
-
 import tukano.api.Blobs;
 import tukano.api.Result;
 import tukano.impl.rest.TukanoRestServer;
-import tukano.impl.storage.AzureSystemStorage;
 import tukano.impl.storage.BlobStorage;
+import tukano.impl.storage.FileSystemStorage;
 import utils.Hash;
 import utils.Hex;
 
-public class JavaBlobs implements Blobs {
-	
+public class JavaFileBlobs implements Blobs {
+
 	private static Blobs instance;
-	private static Logger Log = Logger.getLogger(JavaBlobs.class.getName());
+	private static Logger Log = Logger.getLogger(JavaFileBlobs.class.getName());
 
 	public String baseURI;
 	private BlobStorage storage;
-	
+
 	synchronized public static Blobs getInstance() {
 		if( instance == null )
-			instance = new JavaBlobs();
+			instance = new JavaFileBlobs();
 		return instance;
 	}
-	
-	private JavaBlobs() {
-		// storage = new FileSystemStorage();
-		storage = new AzureSystemStorage();
+
+	private JavaFileBlobs() {
+		storage = new FileSystemStorage();
 		baseURI = String.format("%s/%s/", TukanoRestServer.serverURI, Blobs.NAME);
 	}
 	

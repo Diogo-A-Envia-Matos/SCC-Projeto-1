@@ -5,19 +5,15 @@ import java.util.List;
 import tukano.api.User;
 import tukano.api.Users;
 import tukano.api.rest.RestUsers;
-import tukano.impl.JavaUsers;
+import tukano.impl.JavaCosmosUsers;
+import tukano.impl.JavaHibernateUsers;
 
 @Singleton
 public class RestUsersResource extends RestResource implements RestUsers {
 	
 	//TODO: Add diferent version of JavaUsers for PostgreSQL
-	static final Users impl = TukanoRestServer.USE_SQL ? JavaUsers.getInstance() : JavaUsers.getInstance();
+	static final Users impl = TukanoRestServer.USE_SQL ? JavaHibernateUsers.getInstance() : JavaCosmosUsers.getInstance();
 
-	// final Users impl;
-	// public RestUsersResource() {
-	// 	this.impl = JavaUsers.getInstance();
-	// }
-	
 	@Override
 	public String createUser(User user) {
 		return super.resultOrThrow( impl.createUser( user));

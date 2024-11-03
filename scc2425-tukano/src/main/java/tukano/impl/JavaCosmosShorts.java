@@ -4,7 +4,6 @@ import static java.lang.String.*;
 import static tukano.api.Result.ErrorCode.*;
 import static tukano.api.Result.*;
 
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
@@ -19,7 +18,6 @@ import tukano.impl.data.Likes;
 import tukano.impl.rest.TukanoRestServer;
 import utils.DB;
 import utils.DBCosmos;
-import utils.GetId;
 
 //TODO: Como fazer funcoes que usam queries
 public class JavaCosmosShorts implements Shorts {
@@ -87,7 +85,7 @@ public class JavaCosmosShorts implements Shorts {
 					String blobUrl = url[0];
 					String token = url[1];
 
-					var resBlob = JavaBlobs.getInstance().delete(blobUrl, token);
+					var resBlob = JavaAzureBlobs.getInstance().delete(blobUrl, token);
 					Log.info(() -> format(resBlob.isOK() ? "deleteShort : deleted blob \n" : "deleteShort : couldn't delete blob\n"));
 					return Result.ok();
 			})
@@ -263,7 +261,7 @@ public class JavaCosmosShorts implements Shorts {
 	}
 
 	protected Result<User> okUser( String userId, String pwd) {
-		return JavaUsers.getInstance().getUser(userId, pwd);
+		return JavaCosmosUsers.getInstance().getUser(userId, pwd);
 	}
 
 	private Result<Void> okUser( String userId ) {

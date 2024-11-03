@@ -6,10 +6,7 @@ import static tukano.api.Result.*;
 
 import com.azure.cosmos.models.CosmosBatch;
 import com.azure.cosmos.models.PartitionKey;
-import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
 import tukano.api.Blobs;
@@ -24,7 +21,6 @@ import utils.DB;
 import utils.DBCosmos;
 import utils.DBHibernate;
 import utils.GetId;
-import utils.Operations;
 
 //TODO: Como fazer funcoes que usam queries
 public class JavaHibernateShorts implements Shorts {
@@ -94,7 +90,7 @@ public class JavaHibernateShorts implements Shorts {
 
 				((DBCosmos) database).transaction(likesBatch, Likes.class);
 
-				JavaBlobs.getInstance().delete(shrt.getBlobUrl(), Token.get());
+				JavaAzureBlobs.getInstance().delete(shrt.getBlobUrl(), Token.get());
 				return null;
 			});	
 		});
@@ -166,7 +162,7 @@ public class JavaHibernateShorts implements Shorts {
 	}
 		
 	protected Result<User> okUser( String userId, String pwd) {
-		return JavaUsers.getInstance().getUser(userId, pwd);
+		return JavaCosmosUsers.getInstance().getUser(userId, pwd);
 	}
 	
 	private Result<Void> okUser( String userId ) {

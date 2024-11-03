@@ -1,42 +1,35 @@
 package tukano.impl;
 
-import static java.lang.String.format;
-import static tukano.api.Result.error;
-import static tukano.api.Result.errorOrResult;
-import static tukano.api.Result.errorOrValue;
-import static tukano.api.Result.ok;
-import static tukano.api.Result.ErrorCode.BAD_REQUEST;
-import static tukano.api.Result.ErrorCode.FORBIDDEN;
+import static java.lang.String.*;
+import static tukano.api.Result.ErrorCode.*;
+import static tukano.api.Result.*;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
-
 import tukano.api.Result;
 import tukano.api.User;
 import tukano.api.Users;
 import utils.DB;
-import utils.DBCosmos;
-// import utils.DBHibernate;
+import utils.DBHibernate;
 
-public class JavaUsers implements Users {
-	
-	private static Logger Log = Logger.getLogger(JavaUsers.class.getName());
+public class JavaHibernateUsers implements Users {
+
+	private static Logger Log = Logger.getLogger(JavaHibernateUsers.class.getName());
 
 	private static Users instance;
 
 	private static DB database; // Choose between CosmosDB or Hibernate
-	
+
 	synchronized public static Users getInstance() {
 		if( instance == null )
-			instance = new JavaUsers();
+			instance = new JavaHibernateUsers();
 		return instance;
 	}
-	
-	private JavaUsers() {
-		database = DBCosmos.getInstance();
-		// database = DBHibernate.getInstance();
+
+	private JavaHibernateUsers() {
+		database = DBHibernate.getInstance();
 	}
 	
 	@Override
@@ -81,7 +74,7 @@ public class JavaUsers implements Users {
 			// Delete user shorts and related info asynchronously in a separate thread
 			Executors.defaultThreadFactory().newThread( () -> {
 				JavaCosmosShorts.getInstance().deleteAllShorts(userId, pwd, Token.get(userId));
-				JavaBlobs.getInstance().deleteAllBlobs(userId, Token.get(userId));
+				JavaAzureBlobs.getInstance().deleteAllBlobs(userId, Token.get(userId));
 			}).start();
 			
 			return database.deleteOne( user);
