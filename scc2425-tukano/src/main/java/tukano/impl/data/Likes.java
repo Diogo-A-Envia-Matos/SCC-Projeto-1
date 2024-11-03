@@ -11,7 +11,7 @@ public class Likes {
 	@Id 
 	String userId;
 	
-	@Id 
+	@Id
 	String shortId;
 	
 	public String getOwnerId() {

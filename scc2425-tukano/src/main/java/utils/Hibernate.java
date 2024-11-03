@@ -72,6 +72,12 @@ public class Hibernate {
 			return Result.ok( obj );
 		});
 	}
+
+	public <T> List<Result<T>> deleteCollection(List<T> targets) {
+		return targets.stream()
+					.map(target -> deleteOne(target))
+					.toList();
+	}
 		
 	public <T> Result<T> getOne(Object id, Class<T> clazz) {
 		try (var session = sessionFactory.openSession()) {

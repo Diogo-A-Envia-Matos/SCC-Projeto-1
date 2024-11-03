@@ -4,12 +4,7 @@ import static java.lang.String.*;
 import static tukano.api.Result.ErrorCode.*;
 import static tukano.api.Result.*;
 
-import com.azure.cosmos.models.CosmosBatch;
-import com.azure.cosmos.models.PartitionKey;
-import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
 import tukano.api.Blobs;
@@ -22,8 +17,6 @@ import tukano.impl.data.Likes;
 import tukano.impl.rest.TukanoRestServer;
 import utils.DB;
 import utils.DBCosmos;
-import utils.GetId;
-import utils.Operations;
 
 //TODO: Como fazer funcoes que usam queries
 public class JavaCosmosShorts implements Shorts {
@@ -40,11 +33,9 @@ public class JavaCosmosShorts implements Shorts {
 		return instance;
 	}
 	
-	//TODO: Criar novo ficheiro que usa DBHibernate
 	private JavaCosmosShorts() {
 		database = DBCosmos.getInstance();
 	}
-	
 	
 	@Override
 	public Result<Short> createShort(String userId, String password) {
@@ -76,35 +67,36 @@ public class JavaCosmosShorts implements Shorts {
 	@Override
 	public Result<Void> deleteShort(String shortId, String password) {
 		Log.info(() -> format("deleteShort : shortId = %s, pwd = %s\n", shortId, password));
-		
-		return errorOrResult( getShort(shortId), shrt -> {
-			
-			return errorOrResult( okUser( shrt.getOwnerId(), password), user -> {
-				database.deleteOne(shrt);
 
-				var query = format("SELECT * FROM Likes WHERE Likes.shortId = '%s'", shortId);
-				var likesToDelete = database.sql(query, Likes.class);
 
-				var likesBatch = CosmosBatch.createCosmosBatch(new PartitionKey(user.getId()));
+		return errorOrResult( getShort(shortId), shrt ->
+				errorOrResult( okUser( shrt.getOwnerId(), password), user -> {
+					var resShort = database.deleteOne(shrt);
+					Log.info(() -> format(resShort.isOK() ? "deleteShort : deleted blob \n" : "deleteShort : couldn't delete blob\n"));
 
-				for (Likes like: likesToDelete) {
-					likesBatch.deleteItemOperation(GetId.getId(like));
-				}
+					var query = format("SELECT * FROM Likes WHERE Likes.shortId = '%s'", shortId);
+					var likesToDelete = database.sql(query, Likes.class);
 
-				((DBCosmos) database).transaction(likesBatch, Likes.class);
+					var resLikes = database.deleteCollection(likesToDelete);
+					Log.info(() -> format("deleteShort : deleted %s likes \n", countDeletedItems(resLikes)));
 
-				JavaBlobs.getInstance().delete(shrt.getBlobUrl(), Token.get());
-				return null;
-			});	
-		});
+					String[] url = shrt.getBlobUrl().split("\\?token=");
+					String blobUrl = url[0];
+					String token = url[1];
+
+					var resBlob = JavaBlobs.getInstance().delete(blobUrl, token);
+					Log.info(() -> format(resBlob.isOK() ? "deleteShort : deleted blob \n" : "deleteShort : couldn't delete blob\n"));
+					return Result.ok();
+			})
+		);
 	}
 
 	@Override
 	public Result<List<String>> getShorts(String userId) {
 		Log.info(() -> format("getShorts : userId = %s\n", userId));
 
-		var query = format("SELECT s.shortId FROM Short s WHERE s.ownerId = '%s'", userId);
-		return errorOrValue( okUser(userId), database.sql( query, String.class));
+		var query = format("SELECT s.id FROM Short s WHERE s.ownerId = '%s'", userId);
+		return errorOrValue( okUser(userId), database.sql(query, Short.class, String.class));
 	}
 
 	@Override
@@ -163,79 +155,69 @@ public class JavaCosmosShorts implements Shorts {
 
 		return errorOrValue( okUser( userId, password), database.sql( format(QUERY_FMT, userId, userId), String.class));		
 	}
-		
-	protected Result<User> okUser( String userId, String pwd) {
-		return JavaUsers.getInstance().getUser(userId, pwd);
-	}
-	
-	private Result<Void> okUser( String userId ) {
-		var res = okUser( userId, "");
-		if( res.error() == FORBIDDEN )
-			return ok();
-		else
-			return error( res.error() );
-	}
-	
-	//TODO: Implement way to change the function used based on database type
+
 	@Override
 	public Result<Void> deleteAllShorts(String userId, String password, String token) {
 		Log.info(() -> format("deleteAllShorts : userId = %s, password = %s, token = %s\n", userId, password, token));
 
-		if( ! Token.isValid( token, userId ) )
-			return error(FORBIDDEN);
+		//TODO fix the token
+		// if( ! Token.isValid( token, userId ) )
+		// 	return error(FORBIDDEN);
 
-		// Map<String, Map<String, String>> toRemove = new HashMap<>();
-
-		//Ideia, colocar likes e follows no users
-		//TODO: Tentar usar Bulk Operations
-
-		// 3 pesquisas -> 1 batch delete
 		var query1 = format("SELECT * FROM Short s WHERE s.ownerId = '%s'", userId);
 		List<Short> shortsToRemove = database.sql(query1, Short.class);
-		
+		var resShorts = database.deleteCollection(shortsToRemove);
+		Log.info(() -> format("deleteAllShort : deleted %s shorts \n", countDeletedItems(resShorts)));
+
 		//delete follows
 		var query2 = format("SELECT * FROM Following f WHERE f.follower = '%s' OR f.followee = '%s'", userId, userId);	
 		List<Following> followingsToRemove = database.sql(query2, Following.class);
-		
+		var resFollowings = database.deleteCollection(shortsToRemove);
+		Log.info(() -> format("deleteAllShort : deleted %s followings \n", countDeletedItems(resFollowings)));
+
 		//delete likes
 		var query3 = format("SELECT * FROM Likes l WHERE l.ownerId = '%s' OR l.userId = '%s'", userId, userId);
 		List<Likes> likesToRemove = database.sql(query3, Likes.class);
+		var resLikes = database.deleteCollection(shortsToRemove);
+		Log.info(() -> format("deleteAllShort : deleted %s likes \n", countDeletedItems(resLikes)));
 
-		var shortsBatch = CosmosBatch.createCosmosBatch(new PartitionKey("shortId"));
-		var followingsBatch = CosmosBatch.createCosmosBatch(new PartitionKey("followee"));
-		var likesBatch = CosmosBatch.createCosmosBatch(new PartitionKey("userId"));
+		return Result.ok();
 
-		Map<Operations, List<Object>> operations = new HashMap<>();
-		operations.put(Operations.DELETE, new LinkedList<>());
-
-		for (Short s: shortsToRemove) {
-			operations.get(Operations.DELETE).add(s);
-			shortsBatch.deleteItemOperation(GetId.getId(s));
-		}
-		for (Following f: followingsToRemove) {
-			operations.get(Operations.DELETE).add(f);
-			followingsBatch.deleteItemOperation(GetId.getId(f));
-		}
-		for (Likes l: likesToRemove) {
-			operations.get(Operations.DELETE).add(l);
-			likesBatch.deleteItemOperation(GetId.getId(l));
-		}
-
-		var res1 = ((DBCosmos) database).transaction(shortsBatch, Short.class);
-		if (!res1.isOK()) {
-			return error(res1.error());
-		}
-		var res2 = ((DBCosmos) database).transaction(followingsBatch, Following.class);
-		if (!res2.isOK()) {
-			return error(res2.error());
-		}
-		var res3 = ((DBCosmos) database).transaction(shortsBatch, Likes.class);
-		if (!res3.isOK()) {
-			return error(res3.error());
-		}
+		// var shortsBatch = CosmosBatch.createCosmosBatch(new PartitionKey("shortId"));
+		// var followingsBatch = CosmosBatch.createCosmosBatch(new PartitionKey("followee"));
+		// var likesBatch = CosmosBatch.createCosmosBatch(new PartitionKey("userId"));
+		//
+		// Map<Operations, List<Object>> operations = new HashMap<>();
+		// operations.put(Operations.DELETE, new LinkedList<>());
+		//
+		// for (Short s: shortsToRemove) {
+		// 	operations.get(Operations.DELETE).add(s);
+		// 	shortsBatch.deleteItemOperation(GetId.getId(s));
+		// }
+		// for (Following f: followingsToRemove) {
+		// 	operations.get(Operations.DELETE).add(f);
+		// 	followingsBatch.deleteItemOperation(GetId.getId(f));
+		// }
+		// for (Likes l: likesToRemove) {
+		// 	operations.get(Operations.DELETE).add(l);
+		// 	likesBatch.deleteItemOperation(GetId.getId(l));
+		// }
+		//
+		// var res1 = ((DBCosmos) database).transaction(shortsBatch, Short.class);
+		// if (!res1.isOK()) {
+		// 	return error(res1.error());
+		// }
+		// var res2 = ((DBCosmos) database).transaction(followingsBatch, Following.class);
+		// if (!res2.isOK()) {
+		// 	return error(res2.error());
+		// }
+		// var res3 = ((DBCosmos) database).transaction(shortsBatch, Likes.class);
+		// if (!res3.isOK()) {
+		// 	return error(res3.error());
+		// }
 
 		// return ((DBCosmos) database).transaction(operations);
-		return ok();
+		// return ok();
 
 		// return DB.transaction( (hibernate) -> {
 						
@@ -253,5 +235,22 @@ public class JavaCosmosShorts implements Shorts {
 			
 		// });
 	}
-	
+
+	protected Result<User> okUser( String userId, String pwd) {
+		return JavaUsers.getInstance().getUser(userId, pwd);
+	}
+
+	private Result<Void> okUser( String userId ) {
+		var res = okUser( userId, "");
+		if( res.error() == FORBIDDEN )
+			return ok();
+		else
+			return error( res.error() );
+	}
+
+	private <T> long countDeletedItems(List<Result<T>> likes) {
+		return likes.stream()
+				.filter(res -> res.isOK())
+				.count();
+	}
 }

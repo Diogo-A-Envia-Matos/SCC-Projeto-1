@@ -18,6 +18,11 @@ import com.azure.cosmos.models.PartitionKey;
 import com.azure.cosmos.util.CosmosPagedIterable;
 import com.fasterxml.jackson.databind.JsonNode;
 import exceptions.InvalidClassException;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import org.hibernate.Session;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Transaction;
 
 import java.util.ArrayList;
@@ -46,6 +51,7 @@ public class DBCosmos implements DB {
 	private static final String SHORTS_CONTAINER = "shorts";
 	private static final String FOLLOWINGS_CONTAINER = "followings";
 	private static final String LIKES_CONTAINER = "likes";
+	private static final Logger log = LoggerFactory.getLogger(DBCosmos.class);
 	//private static final String PARTITION_KEY = "id";
 	// public static final PartitionKey PARTITION_KEY = new PartitionKey("userId");
 
@@ -266,6 +272,31 @@ public class DBCosmos implements DB {
 			x.printStackTrace();
 			return Result.error(ErrorCode.INTERNAL_ERROR);
 		}
+	}
+
+	public <T> List<Result<T>> deleteCollection(List<T> targets) {
+
+		return targets.stream()
+				.map(t -> deleteOne(t))
+				.toList();
+
+		// try {
+		// 	init();
+		// 	if (targets.isEmpty()) {
+		// 		log.warn("DBCosmos deleteCollection received an empty list");
+		// 		return Result.ok();
+		// 	}
+		//
+		// 	List<CosmosItemOperation> operations = targets.stream()
+		// 			.map(target -> );
+		//
+		// 	CosmosItemOperation bulkDeleteOperation = getClassContainer(targets.get(0).getClass()).executeCosmosBatch(); // TODO HENRIQUE
+		// 	return Result.ok();
+		//
+		// } catch( Exception x ) {
+		// 	x.printStackTrace();
+		// 	return Result.error(ErrorCode.INTERNAL_ERROR);
+		// }
 	}
 
 	//TODO: Read azure documentation
@@ -523,7 +554,9 @@ public class DBCosmos implements DB {
 		}
 
 		if (outputClazz.equals(String.class)) {
-			return (U) item.asText();
+			// System.out.println("-----------------------------------json: " + item);
+			// System.out.println("-----------------------------------json: " + item.elements().next().asText());
+			return (U) item.elements().next().asText();
 		}
 
 		throw new InvalidClassException("The following class is neither String or Long Class: " + outputClazz.toString());
@@ -552,5 +585,9 @@ public class DBCosmos implements DB {
 			case 409 -> ErrorCode.CONFLICT;
 			default -> ErrorCode.INTERNAL_ERROR;
 		};
+	}
+
+	public <T> Result<T> transaction(Consumer<Session> c) {
+		throw new RuntimeException("unused method");
 	}
 }
