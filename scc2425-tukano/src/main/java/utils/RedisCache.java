@@ -11,6 +11,7 @@ import tukano.api.Short;
 import tukano.api.User;
 import tukano.impl.data.Following;
 import tukano.impl.data.Likes;
+import utils.Props;
 
 //TODO: Finish this file
 //TODO: Implement interface
@@ -20,8 +21,8 @@ public class RedisCache {
 
     // TODO: Choose wether to use write-through or write-back
 
-    private static final String RedisHostname = "redis70252northeurope.redis.cache.windows.net";
-	private static final String RedisKey = "BOH1QR0ZkUMnsDjdE4eWaJOlarCp60JXvAzCaIqrZGs=";
+    private static final String RedisHostname = Props.get("REDIS_URL", "");
+	private static final String RedisKey = Props.get("REDIS_KEY", "");
 	private static final int REDIS_PORT = 6380;
 	private static final int REDIS_TIMEOUT = 1000;
 	private static final boolean Redis_USE_TLS = true;
