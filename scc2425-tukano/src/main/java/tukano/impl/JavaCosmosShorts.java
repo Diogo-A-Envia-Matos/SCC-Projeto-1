@@ -85,7 +85,7 @@ public class JavaCosmosShorts implements Shorts {
 				var query = format("SELECT * FROM Likes WHERE Likes.shortId = '%s'", shortId);
 				var likesToDelete = database.sql(query, Likes.class);
 
-				var likesBatch = CosmosBatch.createCosmosBatch(new PartitionKey(user.getUserId()));
+				var likesBatch = CosmosBatch.createCosmosBatch(new PartitionKey(user.getId()));
 
 				for (Likes like: likesToDelete) {
 					likesBatch.deleteItemOperation(GetId.getId(like));

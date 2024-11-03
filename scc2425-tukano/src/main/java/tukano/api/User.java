@@ -7,7 +7,7 @@ import jakarta.persistence.Id;
 public class User {
 	
 	@Id
-	private String userId;
+	private String id;
 	private String pwd;
 	private String email;	
 	private String displayName;
@@ -17,15 +17,15 @@ public class User {
 	public User(String userId, String pwd, String email, String displayName) {
 		this.pwd = pwd;
 		this.email = email;
-		this.userId = userId;
+		this.id = userId;
 		this.displayName = displayName;
 	}
 
-	public String getUserId() {
-		return userId;
+	public String getId() {
+		return id;
 	}
-	public void setUserId(String id) {
-		this.userId = id;
+	public void setId(String id) {
+		this.id = id;
 	}
 	public String getPwd() {
 		return pwd;
@@ -47,7 +47,7 @@ public class User {
 	}
 	
 	public String userId() {
-		return userId;
+		return id;
 	}
 	
 	public String pwd() {
@@ -64,15 +64,15 @@ public class User {
 	
 	@Override
 	public String toString() {
-		return "User [userId=" + userId + ", pwd=" + pwd + ", email=" + email + ", displayName=" + displayName + "]";
+		return "User [userId=" + id + ", pwd=" + pwd + ", email=" + email + ", displayName=" + displayName + "]";
 	}
 	
 	public User copyWithoutPassword() {
-		return new User(userId, "", email, displayName);
+		return new User(id, "", email, displayName);
 	}
 	
 	public User updateFrom( User other ) {
-		return new User(userId,
+		return new User(id,
 				other.pwd != null ? other.pwd : pwd,
 				other.email != null ? other.email : email, 
 				other.displayName != null ? other.displayName : displayName);

@@ -65,7 +65,7 @@ public class Test {
 		blobs.upload(blobUrl.toString(), randomBytes( 100 ), token);
 
 		
-		var s2id = s2.value().getShortId();
+		var s2id = s2.value().getId();
 		
 		show(shorts.follow("liskov", "wales", true, "54321"));
 		show(shorts.followers("wales", "12345"));

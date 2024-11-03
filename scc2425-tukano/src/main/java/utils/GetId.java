@@ -11,10 +11,10 @@ public class GetId {
 
     public static String getId(Object obj) {
         if (obj instanceof User) {
-            return ((User) obj).getUserId();
+            return ((User) obj).getId();
         }
         else if (obj instanceof Short) {
-            return ((Short) obj).getShortId();
+            return ((Short) obj).getId();
         }
         else if (obj instanceof Following) {
             return String.format("%s-%s", ((Following) obj).getFollower(), ((Following) obj).getFollowee());
