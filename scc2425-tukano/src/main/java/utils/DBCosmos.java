@@ -34,7 +34,6 @@ import tukano.api.Short;
 import tukano.api.User;
 import tukano.impl.data.Following;
 import tukano.impl.data.Likes;
-import utils.Props;
 
 //TODO: Update this file
 //TODO: Separate Cache functions for transaction

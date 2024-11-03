@@ -19,7 +19,6 @@ import tukano.impl.rest.TukanoRestServer;
 import utils.DB;
 import utils.DBCosmos;
 
-//TODO: Como fazer funcoes que usam queries
 public class JavaCosmosShorts implements Shorts {
 
 	private static Logger Log = Logger.getLogger(JavaCosmosShorts.class.getName());
@@ -204,58 +203,6 @@ public class JavaCosmosShorts implements Shorts {
 		Log.info(() -> format("deleteAllShort : deleted %s likes \n", countDeletedItems(resLikes)));
 
 		return Result.ok();
-
-		// var shortsBatch = CosmosBatch.createCosmosBatch(new PartitionKey("shortId"));
-		// var followingsBatch = CosmosBatch.createCosmosBatch(new PartitionKey("followee"));
-		// var likesBatch = CosmosBatch.createCosmosBatch(new PartitionKey("userId"));
-		//
-		// Map<Operations, List<Object>> operations = new HashMap<>();
-		// operations.put(Operations.DELETE, new LinkedList<>());
-		//
-		// for (Short s: shortsToRemove) {
-		// 	operations.get(Operations.DELETE).add(s);
-		// 	shortsBatch.deleteItemOperation(GetId.getId(s));
-		// }
-		// for (Following f: followingsToRemove) {
-		// 	operations.get(Operations.DELETE).add(f);
-		// 	followingsBatch.deleteItemOperation(GetId.getId(f));
-		// }
-		// for (Likes l: likesToRemove) {
-		// 	operations.get(Operations.DELETE).add(l);
-		// 	likesBatch.deleteItemOperation(GetId.getId(l));
-		// }
-		//
-		// var res1 = ((DBCosmos) database).transaction(shortsBatch, Short.class);
-		// if (!res1.isOK()) {
-		// 	return error(res1.error());
-		// }
-		// var res2 = ((DBCosmos) database).transaction(followingsBatch, Following.class);
-		// if (!res2.isOK()) {
-		// 	return error(res2.error());
-		// }
-		// var res3 = ((DBCosmos) database).transaction(shortsBatch, Likes.class);
-		// if (!res3.isOK()) {
-		// 	return error(res3.error());
-		// }
-
-		// return ((DBCosmos) database).transaction(operations);
-		// return ok();
-
-		// return DB.transaction( (hibernate) -> {
-						
-		// 	//delete shorts
-		// 	var query1 = format("DELETE Short s WHERE s.ownerId = '%s'", userId);		
-		// 	hibernate.createQuery(query1, Short.class).executeUpdate();
-			
-		// 	//delete follows
-		// 	var query2 = format("DELETE Following f WHERE f.follower = '%s' OR f.followee = '%s'", userId, userId);		
-		// 	hibernate.createQuery(query2, Following.class).executeUpdate();
-			
-		// 	//delete likes
-		// 	var query3 = format("DELETE Likes l WHERE l.ownerId = '%s' OR l.userId = '%s'", userId, userId);		
-		// 	hibernate.createQuery(query3, Likes.class).executeUpdate();
-			
-		// });
 	}
 
 	protected Result<User> okUser( String userId, String pwd) {

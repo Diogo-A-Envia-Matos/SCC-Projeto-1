@@ -22,7 +22,6 @@ import utils.DBCosmos;
 import utils.DBHibernate;
 import utils.GetId;
 
-//TODO: Como fazer funcoes que usam queries
 public class JavaHibernateShorts implements Shorts {
 
 	private static Logger Log = Logger.getLogger(JavaHibernateShorts.class.getName());
@@ -37,7 +36,6 @@ public class JavaHibernateShorts implements Shorts {
 		return instance;
 	}
 
-	//TODO: Criar novo ficheiro que usa DBHibernate
 	private JavaHibernateShorts() {
 		database = DBHibernate.getInstance();
 	}
