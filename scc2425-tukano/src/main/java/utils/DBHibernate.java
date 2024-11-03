@@ -46,7 +46,7 @@ public class DBHibernate implements DB {
 	public <T> Result<T> deleteOne(T obj) {
 		return Hibernate.getInstance().deleteOne(obj);
 	}
-	public <T> List<Result<T>> deleteCollection(List<T> targets) {
+	public <T> List<Result<Void>> deleteCollection(List<T> targets) {
 		return Hibernate.getInstance().deleteCollection(targets);
 	}
 

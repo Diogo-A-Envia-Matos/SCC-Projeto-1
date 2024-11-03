@@ -236,29 +236,29 @@ public class DBCosmos implements DB {
 		}
 	}
 
-	public <T> List<Result<T>> deleteCollection(List<T> targets) {
-		return targets.stream()
-				.map(t -> deleteOne(t))
-				.toList();
+	public <T> List<Result<Void>> deleteCollection(List<T> targets) {
+		try {
+			init();
+			if (targets.isEmpty()) {
+				log.warn("DBCosmos deleteCollection received an empty list");
+				return List.of();
+			}
 
-				// TODO HENRIQUE
-		// try {
-		// 	init();
-		// 	if (targets.isEmpty()) {
-		// 		log.warn("DBCosmos deleteCollection received an empty list");
-		// 		return Result.ok();
-		// 	}
-		//
-		// 	List<CosmosItemOperation> operations = targets.stream()
-		// 			.map(target -> );
-		//
-		// 	CosmosItemOperation bulkDeleteOperation = getClassContainer(targets.get(0).getClass()).executeCosmosBatch(); 
-		// 	return Result.ok();
-		//
-		// } catch( Exception x ) {
-		// 	x.printStackTrace();
-		// 	return Result.error(ErrorCode.INTERNAL_ERROR);
-		// }
+			List<CosmosItemOperation> operations = targets.stream()
+					.map(target -> {
+						var targetId = GetId.getId(target);
+						PartitionKey partitionKey = getPartitionKey(target);
+						return CosmosBulkOperations.getDeleteItemOperation(targetId, partitionKey);
+					})
+					.toList();
+
+			Iterable<CosmosBulkOperationResponse<Object>> bulkDeleteOperationResponse = getClassContainer(targets.get(0).getClass()).executeBulkOperations(operations);
+			return buildResultList(bulkDeleteOperationResponse);
+
+		} catch( Exception x ) {
+			x.printStackTrace();
+			return List.of(Result.error(ErrorCode.INTERNAL_ERROR));
+		}
 	}
 
 	//TODO: Read azure documentation
@@ -325,22 +325,22 @@ public class DBCosmos implements DB {
 					for (Object item: addOperations) {
 						var id = GetId.getId(item);
 						if (item.getClass().equals(User.class)) {
-							userCosmosItemOperations.add(CosmosBulkOperations.getCreateItemOperation(id, getPartitionKey(User.class)));
+							userCosmosItemOperations.add(CosmosBulkOperations.getCreateItemOperation(id, getPartitionKey((User)item)));
 							var value = JSON.encode( item );
 							cacheTransaction.set(getCacheId(id, User.class), value);
 
 						} else if (item.getClass().equals(Short.class)) {
-							shortCosmosItemOperations.add(CosmosBulkOperations.getCreateItemOperation(id, getPartitionKey(Short.class)));
+							shortCosmosItemOperations.add(CosmosBulkOperations.getCreateItemOperation(id, getPartitionKey((Short)item)));
 							var value = JSON.encode( item );
 							cacheTransaction.set(getCacheId(id, Short.class), value);
 
 						} else if (item.getClass().equals(Following.class)) {
-							followingCosmosItemOperations.add(CosmosBulkOperations.getCreateItemOperation(id, getPartitionKey(Following.class)));
+							followingCosmosItemOperations.add(CosmosBulkOperations.getCreateItemOperation(id, getPartitionKey((Following)item)));
 							var value = JSON.encode( item );
 							cacheTransaction.set(getCacheId(id, Following.class), value);
 
 						} else if (item.getClass().equals(Likes.class)) {
-							likeCosmosItemOperations.add(CosmosBulkOperations.getCreateItemOperation(id, getPartitionKey(Likes.class)));
+							likeCosmosItemOperations.add(CosmosBulkOperations.getCreateItemOperation(id, getPartitionKey((Likes)item)));
 							var value = JSON.encode( item );
 							cacheTransaction.set(getCacheId(id, Likes.class), value);
 						}
@@ -351,19 +351,19 @@ public class DBCosmos implements DB {
 					for (Object item: readOperations) {
 						var id = GetId.getId(item);
 						if (item.getClass().equals(User.class)) {
-							userCosmosItemOperations.add(CosmosBulkOperations.getReadItemOperation(id, getPartitionKey(User.class)));
+							userCosmosItemOperations.add(CosmosBulkOperations.getReadItemOperation(id, getPartitionKey((User)item)));
 							
 							cacheTransaction.get(getCacheId(id, User.class));
 						} else if (item.getClass().equals(Short.class)) {
-							shortCosmosItemOperations.add(CosmosBulkOperations.getReadItemOperation(id, getPartitionKey(Short.class)));
+							shortCosmosItemOperations.add(CosmosBulkOperations.getReadItemOperation(id, getPartitionKey((Short)item)));
 							
 							cacheTransaction.get(getCacheId(id, Short.class));
 						} else if (item.getClass().equals(Following.class)) {
-							followingCosmosItemOperations.add(CosmosBulkOperations.getReadItemOperation(id, getPartitionKey(Following.class)));
+							followingCosmosItemOperations.add(CosmosBulkOperations.getReadItemOperation(id, getPartitionKey((Following)item)));
 							
 							cacheTransaction.get(getCacheId(id, Following.class));
 						} else if (item.getClass().equals(Likes.class)) {
-							likeCosmosItemOperations.add(CosmosBulkOperations.getReadItemOperation(id, getPartitionKey(Likes.class)));
+							likeCosmosItemOperations.add(CosmosBulkOperations.getReadItemOperation(id, getPartitionKey((Likes)item)));
 							
 							cacheTransaction.get(getCacheId(id, Likes.class));
 						}
@@ -374,22 +374,22 @@ public class DBCosmos implements DB {
 					for (Object item: replaceOperations) {
 						var id = GetId.getId(item);
 						if (item.getClass().equals(User.class)) {
-							userCosmosItemOperations.add(CosmosBulkOperations.getReplaceItemOperation(GetId.getId(item), item, getPartitionKey(User.class)));
+							userCosmosItemOperations.add(CosmosBulkOperations.getReplaceItemOperation(GetId.getId(item), item, getPartitionKey((User)item)));
 							
 							var value = JSON.encode( item );
 							cacheTransaction.set(getCacheId(id, User.class), value);
 						} else if (item.getClass().equals(Short.class)) {
-							userCosmosItemOperations.add(CosmosBulkOperations.getReplaceItemOperation(GetId.getId(item), item, getPartitionKey(Short.class)));
+							userCosmosItemOperations.add(CosmosBulkOperations.getReplaceItemOperation(GetId.getId(item), item, getPartitionKey((Short)item)));
 							
 							var value = JSON.encode( item );
 							cacheTransaction.set(getCacheId(id, Short.class), value);
 						} else if (item.getClass().equals(Following.class)) {
-							userCosmosItemOperations.add(CosmosBulkOperations.getReplaceItemOperation(GetId.getId(item), item, getPartitionKey(Following.class)));
+							userCosmosItemOperations.add(CosmosBulkOperations.getReplaceItemOperation(GetId.getId(item), item, getPartitionKey((Following)item)));
 							
 							var value = JSON.encode( item );
 							cacheTransaction.set(getCacheId(id, Following.class), value);
 						} else if (item.getClass().equals(Likes.class)) {
-							userCosmosItemOperations.add(CosmosBulkOperations.getReplaceItemOperation(GetId.getId(item), item, getPartitionKey(Likes.class)));
+							userCosmosItemOperations.add(CosmosBulkOperations.getReplaceItemOperation(GetId.getId(item), item, getPartitionKey((Likes)item)));
 							
 							var value = JSON.encode( item );
 							cacheTransaction.set(getCacheId(id, Likes.class), value);
@@ -400,19 +400,19 @@ public class DBCosmos implements DB {
 					for (Object item: deleteOperations) {
 						var id = GetId.getId(item);
 						if (item.getClass().equals(User.class)) {
-							userCosmosItemOperations.add(CosmosBulkOperations.getDeleteItemOperation(GetId.getId(item), getPartitionKey(User.class)));
+							userCosmosItemOperations.add(CosmosBulkOperations.getDeleteItemOperation(GetId.getId(item), getPartitionKey((User)item)));
 
 							cacheTransaction.del(getCacheId(id, User.class));
 						} else if (item.getClass().equals(Short.class)) {
-							shortCosmosItemOperations.add(CosmosBulkOperations.getDeleteItemOperation(GetId.getId(item), getPartitionKey(Short.class)));
+							shortCosmosItemOperations.add(CosmosBulkOperations.getDeleteItemOperation(GetId.getId(item), getPartitionKey((Short)item)));
 
 							cacheTransaction.del(getCacheId(id, Short.class));
 						} else if (item.getClass().equals(Following.class)) {
-							followingCosmosItemOperations.add(CosmosBulkOperations.getDeleteItemOperation(GetId.getId(item), getPartitionKey(Following.class)));
+							followingCosmosItemOperations.add(CosmosBulkOperations.getDeleteItemOperation(GetId.getId(item), getPartitionKey((Following)item)));
 
 							cacheTransaction.del(getCacheId(id, Following.class));
 						} else if (item.getClass().equals(Likes.class)) {
-							likeCosmosItemOperations.add(CosmosBulkOperations.getDeleteItemOperation(GetId.getId(item), getPartitionKey(Likes.class)));
+							likeCosmosItemOperations.add(CosmosBulkOperations.getDeleteItemOperation(GetId.getId(item), getPartitionKey((Likes)item)));
 
 							cacheTransaction.del(getCacheId(id, Likes.class));
 						}
@@ -488,17 +488,17 @@ public class DBCosmos implements DB {
 		throw new InvalidClassException("Invalid Class: " + clazz.toString());
 	}
 
-    private <T> PartitionKey getPartitionKey(Class<T> clazz) {
-        if (clazz.equals(User.class)) {
-            return new PartitionKey("userId");
-        } else if (clazz.equals(Short.class)) {
-            return new PartitionKey("shortId");
-        } else if (clazz.equals(Following.class)) {
-            return new PartitionKey("followee");
-        } else if (clazz.equals(Likes.class)) {
-            return new PartitionKey("userId");
+    private <T> PartitionKey getPartitionKey(T obj) {
+        if (obj.getClass().equals(User.class)) {
+            return new PartitionKey(GetId.getId(obj));
+        } else if (obj.getClass().equals(Short.class)) {
+            return new PartitionKey(GetId.getId(obj));
+        } else if (obj.getClass().equals(Following.class)) {
+            return new PartitionKey(((Following)obj).getFollower());
+        } else if (obj.getClass().equals(Likes.class)) {
+            return new PartitionKey(((Likes)obj).getUserId());
         }
-        throw new InvalidClassException("Invalid Class: " + clazz.toString());
+        throw new InvalidClassException("Invalid Class: " + obj.getClass().toString());
     }
 
 	@SuppressWarnings("unchecked")
@@ -512,6 +512,20 @@ public class DBCosmos implements DB {
 		}
 
 		throw new InvalidClassException("The following class is neither String or Long Class: " + outputClazz.toString());
+	}
+
+	private List<Result<Void>> buildResultList(Iterable<CosmosBulkOperationResponse<Object>> bulkDeleteOperationResponse) {
+		List<Result<Void>> results = List.of();
+
+		for (CosmosBulkOperationResponse<Object> response: bulkDeleteOperationResponse) {
+			if (response.getResponse().isSuccessStatusCode()) {
+				results.add(Result.ok());
+			} else {
+				results.add(Result.error(ErrorCode.INTERNAL_ERROR));
+			}
+		}
+
+		return results;
 	}
 
 	private <T> Result<T> translateCosmosResponse(CosmosItemResponse<T> response) {

@@ -73,9 +73,12 @@ public class Hibernate {
 		});
 	}
 
-	public <T> List<Result<T>> deleteCollection(List<T> targets) {
+	public <T> List<Result<Void>> deleteCollection(List<T> targets) {
 		return targets.stream()
-					.map(target -> deleteOne(target))
+					.map(target -> {
+						deleteOne(target);
+						return Result.<Void>ok();
+					})
 					.toList();
 	}
 		

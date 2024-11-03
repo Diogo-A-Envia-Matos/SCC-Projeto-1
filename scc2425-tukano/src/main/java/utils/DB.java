@@ -30,7 +30,7 @@ public interface DB {
 	
 	<T> Result<T> deleteOne(T obj);
 
-	<T> List<Result<T>> deleteCollection(List<T> targets);
+	<T> List<Result<Void>> deleteCollection(List<T> targets);
 
 	<T> Result<T> updateOne(T obj);
 	
