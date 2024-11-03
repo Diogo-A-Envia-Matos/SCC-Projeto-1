@@ -26,7 +26,8 @@ public class TukanoRestServer extends Application {
 	private static final String TOKEN_SECRET = "Token_secret";
 
 	static final String INETADDR_ANY = "0.0.0.0";
-	static String SERVER_BASE_URI = "http://%s:%s/rest";
+	static String SERVER_BASE_URI = "http://%s:%s/tukano/rest";
+	static String TOMCAT_IP = "127.0.0.1";
 
 	public static final int PORT = 8080;
 
@@ -42,7 +43,8 @@ public class TukanoRestServer extends Application {
 	public TukanoRestServer() {
 		Token.setSecret(TOKEN_SECRET);
 
-		serverURI = String.format(SERVER_BASE_URI, IP.hostname(), PORT);
+		// had to hard code - ip.hostname() gave wrong host
+		serverURI = String.format(SERVER_BASE_URI, TOMCAT_IP, PORT);
 		resources.add(RestBlobsResource.class);
 		resources.add(RestUsersResource.class);
 		resources.add(RestShortsResource.class);
