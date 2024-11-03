@@ -25,9 +25,9 @@ public class Short {
 
 	public Short() {}
 	
-	public Short(String id, String ownerId, String blobUrl, long timestamp, int totalLikes) {
+	public Short(String shortId, String ownerId, String blobUrl, long timestamp, int totalLikes) {
 		super();
-		this.id = id;
+		this.id = shortId;
 		this.ownerId = ownerId;
 		this.blobUrl = blobUrl;
 		this.timestamp = timestamp;

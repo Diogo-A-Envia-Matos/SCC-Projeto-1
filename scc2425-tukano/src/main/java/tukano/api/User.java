@@ -14,10 +14,10 @@ public class User {
 
 	public User() {}
 	
-	public User(String id, String pwd, String email, String displayName) {
+	public User(String userId, String pwd, String email, String displayName) {
 		this.pwd = pwd;
 		this.email = email;
-		this.id = id;
+		this.id = userId;
 		this.displayName = displayName;
 	}
 

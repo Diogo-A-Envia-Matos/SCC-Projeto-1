@@ -32,26 +32,6 @@ public interface Blobs {
 	 */
 	Result<byte[]> download(String blobId, String token);
 
-	/**
-	 * Downloads a short video blob resource as a result suitable for streaming
-	 * large-sized byte resources 
-	 * 
-	 * The default implementation just sinks a single chunk of bytes taken from download(blobId)
-	 * 
-	 * @param blobId the id of the blob
-	 * @param sink - the consumer of the chunks of data
-	 * @return (OK,), if the blob exists;
-	 *		   NOT_FOUND, if no blob matches the provided blobId
-	 */
-	default Result<Void> downloadToSink(String blobId, Consumer<byte[]> sink, String token) {
-		var res = download(blobId, token);
-		if (!res.isOK())
-			return Result.error(res.error());
-
-		sink.accept(res.value());
-		return Result.ok();
-	}
-	
 	Result<Void> delete( String blobId, String token );
 	
 	Result<Void> deleteAllBlobs( String userId, String token );

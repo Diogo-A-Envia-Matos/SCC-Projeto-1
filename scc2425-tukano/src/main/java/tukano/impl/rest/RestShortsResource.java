@@ -7,12 +7,13 @@ import tukano.api.Short;
 import tukano.api.Shorts;
 import tukano.api.rest.RestShorts;
 import tukano.impl.JavaCosmosShorts;
+import tukano.impl.JavaHibernateShorts;
 
 @Singleton
 public class RestShortsResource extends RestResource implements RestShorts {
 
 	//TODO: Add diferent version of JavaShorts for PostgreSQL
-	static final Shorts impl = TukanoRestServer.USE_SQL ? JavaCosmosShorts.getInstance() : JavaCosmosShorts.getInstance();
+	static final Shorts impl = TukanoRestServer.USE_SQL ? JavaHibernateShorts.getInstance() : JavaCosmosShorts.getInstance();
 		
 	@Override
 	public Short createShort(String userId, String password) {
