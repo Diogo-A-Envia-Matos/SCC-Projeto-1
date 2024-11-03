@@ -61,19 +61,6 @@ public class FileSystemStorage implements BlobStorage {
 	}
 
 	@Override
-	public Result<Void> read(String path, Consumer<byte[]> sink) {
-		if (path == null)
-			return error(BAD_REQUEST);
-		
-		var file = toFile( path );
-		if( ! file.exists() )
-			return error(NOT_FOUND);
-		
-		IO.read( file, CHUNK_SIZE, sink );
-		return ok();
-	}
-	
-	@Override
 	public Result<Void> delete(String path) {
 		if (path == null)
 			return error(BAD_REQUEST);

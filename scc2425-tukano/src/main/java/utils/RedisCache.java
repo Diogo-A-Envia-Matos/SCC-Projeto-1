@@ -20,8 +20,8 @@ public class RedisCache {
 
     // TODO: Choose wether to use write-through or write-back
 
-    private static final String RedisHostname = "scccache70252.redis.cache.windows.net";
-	private static final String RedisKey = "ocIJGoGQ60C1G6uIiTPMQSHPNz14Pu5tYAzCaLcuDRM=";
+    private static final String RedisHostname = "redis70252northeurope.redis.cache.windows.net";
+	private static final String RedisKey = "BOH1QR0ZkUMnsDjdE4eWaJOlarCp60JXvAzCaIqrZGs=";
 	private static final int REDIS_PORT = 6380;
 	private static final int REDIS_TIMEOUT = 1000;
 	private static final boolean Redis_USE_TLS = true;

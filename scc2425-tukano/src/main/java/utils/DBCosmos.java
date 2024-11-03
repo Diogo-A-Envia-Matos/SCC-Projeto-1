@@ -35,12 +35,12 @@ import tukano.impl.data.Likes;
 public class DBCosmos implements DB {
 	//TODO: Obtain Azure values via "azurekeys-region.props"
 	// replace with your own
-	//	private static final String CONNECTION_URL = "https://sccdb70252.documents.azure.com:443/"; // replace with your own
-	// 	private static final String DB_KEY = "6RBrEE6YTE67v9v4h9MNfbgAcj4AjLAwzxQhwNeMAPFrNRcTkNFPdGhvW16Lx0zperURFz4IUgtkACDbGXfDPw==";
-	//	private static final String DB_NAME = "sccdatabase70252";
-	private static final String CONNECTION_URL = "https://scc54471.documents.azure.com:443/";
-	private static final String DB_KEY = "SiA2WxsLm08Rou3dmZrpkhTTCyPbQoqU3jlH6EAtGp7vKQJtKA5XR68Pw5Ry2ooZKrO4lA56D3LLACDbarbfKg==";
-	private static final String DB_NAME = "scc54471";
+	private static final String CONNECTION_URL = "https://sccdb70252.documents.azure.com:443/"; // replace with your own
+	private static final String DB_KEY = "hZp5u2lmvfKBB6b9ENyjbZ2ZMbK5nhYKw0LSxhHKaomkHsX6xxs5QWSG7CeXXotxwiRdwktgwGXOACDbiplKhA==";
+	private static final String DB_NAME = "cosmosdb70252";
+	// private static final String CONNECTION_URL = "https://scc54471.documents.azure.com:443/";
+	// private static final String DB_KEY = "SiA2WxsLm08Rou3dmZrpkhTTCyPbQoqU3jlH6EAtGp7vKQJtKA5XR68Pw5Ry2ooZKrO4lA56D3LLACDbarbfKg==";
+	// private static final String DB_NAME = "scc54471";
 
 	private static final String USERS_CONTAINER = "users";
 	private static final String SHORTS_CONTAINER = "shorts";
@@ -139,28 +139,27 @@ public class DBCosmos implements DB {
 
 	public <T> Result<T> insertOne( T obj) {
 		try {
-			// try (var jedis = RedisCache.getCachePool().getResource()) {
-			// 	var id = GetId.getId(obj);
-			// 	var clazz = obj.getClass();
-			// 	var cacheId = getCacheId(id, clazz);
-			// 	var value = JSON.encode( obj );
-			// 	if (jedis.exists(cacheId)) {
-			// 		return Result.error( ErrorCode.CONFLICT );
-			// 	}
-			// 	var res = translateCosmosResponse(getClassContainer(clazz).createItem(obj));
-			// 	if (!res.isOK()) {
-			// 		return Result.error(res.error());
-			// 	} else {
-			// 		jedis.set(cacheId, value);
-			// 		return Result.ok(obj);
-			// 	}
-			// } catch (Exception e) {
-			// 	e.printStackTrace();
-			// 	throw e;
-			// }
-			init();
-			CosmosItemResponse<T> response = getClassContainer(obj.getClass()).createItem(obj);
-			return translateCosmosResponse(response);
+			try (var jedis = RedisCache.getCachePool().getResource()) {
+				var id = GetId.getId(obj);
+				var clazz = obj.getClass();
+				var cacheId = getCacheId(id, clazz);
+				var value = JSON.encode( obj );
+				if (jedis.exists(cacheId)) {
+					return Result.error( ErrorCode.CONFLICT );
+				}
+				init();
+				CosmosItemResponse<T> response = getClassContainer(obj.getClass()).createItem(obj);
+				var res = translateCosmosResponse(response);
+				if (!res.isOK()) {
+					return Result.error(res.error());
+				} else {
+					jedis.set(cacheId, value);
+					return Result.ok(obj);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw e;
+			}
 
 		} catch( CosmosException ce ) {
 			ce.printStackTrace();
@@ -172,19 +171,18 @@ public class DBCosmos implements DB {
 	}
 
 	public <T> Result<T> getOne(String id, Class<T> clazz) {
-		// try (var jedis = RedisCache.getCachePool().getResource()) {
-		// 	init();
-		// 	var cacheId = getCacheId(id, clazz);
-		// 	var obj = jedis.get(cacheId);
-		// 	if (obj != null) {
-		// 		var object = JSON.decode(obj, clazz);
-		// 		return Result.ok(object);
-		// 	}
-		// } catch (Exception e) {
-		// 	e.printStackTrace();
-		// 	throw e;
-		// }
 		try {
+			try (var jedis = RedisCache.getCachePool().getResource()) {
+				var cacheId = getCacheId(id, clazz);
+				var obj = jedis.get(cacheId);
+				if (obj != null) {
+					var object = JSON.decode(obj, clazz);
+					return Result.ok(object);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw e;
+			}
 
 			init();
 			final PartitionKey partitionKey = new PartitionKey(id);
@@ -204,16 +202,16 @@ public class DBCosmos implements DB {
 		// 	return Result.error(res.error());
 		// }
 		//
-		// try (var jedis = RedisCache.getCachePool().getResource()) {
-		// 	var id = GetId.getId(obj);
-		// 	var clazz = obj.getClass();
-		// 	var cacheId = getCacheId(id, clazz);
-		// 	var value = JSON.encode( obj );
-		// 	jedis.set(cacheId, value);
-		// } catch (Exception e) {
-		// 	e.printStackTrace();
-		// 	throw e;
-		// }
+		try (var jedis = RedisCache.getCachePool().getResource()) {
+			var id = GetId.getId(obj);
+			var clazz = obj.getClass();
+			var cacheId = getCacheId(id, clazz);
+			var value = JSON.encode( obj );
+			jedis.set(cacheId, value);
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw e;
+		}
 		try {
 
 			init();
@@ -233,31 +231,20 @@ public class DBCosmos implements DB {
 	}
 
 	public <T> Result<T> deleteOne(T obj) {
-		try {
-			// init();
-			// //return Result.ok(supplierFunc.get());
-			// //TODO: Check if this delete is correct
-			// CosmosItemResponse<?> res = getClassContainer(obj.getClass()).deleteItem(GetId.getId(obj), new PartitionKey(PARTITION_KEY), new CosmosItemRequestOptions());
-			// // CosmosItemResponse<?> res = container.deleteItem(obj, new CosmosItemRequestOptions());
-			// if( res.getStatusCode() < 300) {
-			// 	try (var jedis = RedisCache.getCachePool().getResource()) {
-			// 		var id = GetId.getId(obj);
-			// 		var clazz = obj.getClass();
-			// 		var cacheId = getCacheId(id, clazz);
-			// 		jedis.del(cacheId);
-			// 	} catch (Exception e) {
-			// 		e.printStackTrace();
-			// 		throw e;
-			// 	}
-			// 	return Result.ok(obj);
-			// }
-			// else {
-			// 	return Result.error( ErrorCode.INTERNAL_ERROR);
-			// }
+		try (var jedis = RedisCache.getCachePool().getResource()) {
+			var id = GetId.getId(obj);
+			var clazz = obj.getClass();
+			var cacheId = getCacheId(id, clazz);
+			jedis.del(cacheId);
 
+			//TODO: Check if this delete is correct
 			init();
+			// CosmosItemResponse<?> res = getClassContainer(obj.getClass()).deleteItem(GetId.getId(obj), getPartitionKey(obj.getClass()), new CosmosItemRequestOptions());
 			CosmosItemResponse<Object> response = getClassContainer(obj.getClass()).deleteItem(obj, new CosmosItemRequestOptions());
 			return translateCosmosResponse(response, obj);
+			// //return Result.ok(supplierFunc.get());
+			// init();
+			// return translateCosmosResponse(response, obj);
 
 		} catch( CosmosException ce ) {
 			//ce.printStackTrace();
@@ -326,17 +313,30 @@ public class DBCosmos implements DB {
 
 			Transaction cacheTransaction = null;
 			try (var jedis = RedisCache.getCachePool().getResource()) {
-				cacheTransaction = new Transaction(jedis);
+				// cacheTransaction = new Transaction(jedis);
+				cacheTransaction = jedis.multi();
 				if (addOperations != null) {
 					for (Object item: addOperations) {
+						var id = GetId.getId(item);
 						if (item.getClass().equals(User.class)) {
-							userCosmosItemOperations.add(CosmosBulkOperations.getCreateItemOperation(GetId.getId(item), getPartitionKey(User.class)));
+							userCosmosItemOperations.add(CosmosBulkOperations.getCreateItemOperation(id, getPartitionKey(User.class)));
+							var value = JSON.encode( item );
+							cacheTransaction.set(getCacheId(id, User.class), value);
+
 						} else if (item.getClass().equals(Short.class)) {
-							shortCosmosItemOperations.add(CosmosBulkOperations.getCreateItemOperation(GetId.getId(item), getPartitionKey(Short.class)));
+							shortCosmosItemOperations.add(CosmosBulkOperations.getCreateItemOperation(id, getPartitionKey(Short.class)));
+							var value = JSON.encode( item );
+							cacheTransaction.set(getCacheId(id, Short.class), value);
+
 						} else if (item.getClass().equals(Following.class)) {
-							followingCosmosItemOperations.add(CosmosBulkOperations.getCreateItemOperation(GetId.getId(item), getPartitionKey(Following.class)));
+							followingCosmosItemOperations.add(CosmosBulkOperations.getCreateItemOperation(id, getPartitionKey(Following.class)));
+							var value = JSON.encode( item );
+							cacheTransaction.set(getCacheId(id, Following.class), value);
+
 						} else if (item.getClass().equals(Likes.class)) {
-							likeCosmosItemOperations.add(CosmosBulkOperations.getCreateItemOperation(GetId.getId(item), getPartitionKey(Likes.class)));
+							likeCosmosItemOperations.add(CosmosBulkOperations.getCreateItemOperation(id, getPartitionKey(Likes.class)));
+							var value = JSON.encode( item );
+							cacheTransaction.set(getCacheId(id, Likes.class), value);
 						}
 						//TODO: Adicionar a Cache
 					}
@@ -517,6 +517,7 @@ public class DBCosmos implements DB {
         throw new InvalidClassException("Invalid Class: " + clazz.toString());
     }
 
+	@SuppressWarnings("unchecked")
 	private <U> U convertToClass(JsonNode item, Class<U> outputClazz) {
 		if (outputClazz.equals(Long.class)) {
 			return (U) (Long) item.asLong();

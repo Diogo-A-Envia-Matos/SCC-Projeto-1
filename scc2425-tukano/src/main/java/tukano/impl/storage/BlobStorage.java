@@ -12,6 +12,4 @@ public interface BlobStorage {
 	
 	public Result<byte[]> read(String path);
 
-	public Result<Void> read(String path, Consumer<byte[]> sink);
-
 }

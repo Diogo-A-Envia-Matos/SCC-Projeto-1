@@ -17,7 +17,7 @@ import tukano.impl.Token;
 public class Short {
 	
 	@Id
-	String id;
+	String shortId;
 	String ownerId;
 	String blobUrl;
 	long timestamp;
@@ -25,9 +25,9 @@ public class Short {
 
 	public Short() {}
 	
-	public Short(String id, String ownerId, String blobUrl, long timestamp, int totalLikes) {
+	public Short(String shortId, String ownerId, String blobUrl, long timestamp, int totalLikes) {
 		super();
-		this.id = id;
+		this.shortId = shortId;
 		this.ownerId = ownerId;
 		this.blobUrl = blobUrl;
 		this.timestamp = timestamp;
@@ -38,12 +38,12 @@ public class Short {
 		this(id, ownerId, blobUrl, System.currentTimeMillis(), 0);
 	}
 	
-	public String getId() {
-		return id;
+	public String getShortId() {
+		return shortId;
 	}
 
-	public void setId(String id) {
-		this.id = id;
+	public void setShortId(String id) {
+		this.shortId = id;
 	}
 
 	public String getOwnerId() {
@@ -80,12 +80,12 @@ public class Short {
 
 	@Override
 	public String toString() {
-		return "Short [shortId=" + id + ", ownerId=" + ownerId + ", blobUrl=" + blobUrl + ", timestamp="
+		return "Short [shortId=" + shortId + ", ownerId=" + ownerId + ", blobUrl=" + blobUrl + ", timestamp="
 				+ timestamp + ", totalLikes=" + totalLikes + "]";
 	}
 	
 	public Short copyWithLikes_And_Token( long totLikes) {
 		var urlWithToken = String.format("%s?token=%s", blobUrl, Token.get(blobUrl));
-		return new Short(id, ownerId, urlWithToken, timestamp, (int)totLikes);
+		return new Short(shortId, ownerId, urlWithToken, timestamp, (int)totLikes);
 	}	
 }
