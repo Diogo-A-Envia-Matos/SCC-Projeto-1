@@ -137,27 +137,23 @@ public class DBCosmos implements DB {
 	}
 
 	public <T> Result<T> insertOne( T obj) {
-		try {
-			try (var jedis = RedisCache.getCachePool().getResource()) {
-				var id = GetId.getId(obj);
-				var clazz = obj.getClass();
-				var cacheId = getCacheId(id, clazz);
-				var value = JSON.encode( obj );
-				if (jedis.exists(cacheId)) {
-					return Result.error( ErrorCode.CONFLICT );
-				}
-				init();
-				CosmosItemResponse<T> response = getClassContainer(obj.getClass()).createItem(obj);
-				var res = translateCosmosResponse(response);
-				if (!res.isOK()) {
-					return Result.error(res.error());
-				} else {
-					jedis.set(cacheId, value);
-					return Result.ok(obj);
-				}
-			} catch (Exception e) {
-				e.printStackTrace();
-				throw e;
+		try (var jedis = RedisCache.getCachePool().getResource()) {
+			var id = GetId.getId(obj);
+			var clazz = obj.getClass();
+			var cacheId = getCacheId(id, clazz);
+			var value = JSON.encode( obj );
+			if (jedis.exists(cacheId)) {
+				return Result.error( ErrorCode.CONFLICT );
+			}
+
+			init();
+			CosmosItemResponse<T> response = getClassContainer(obj.getClass()).createItem(obj);
+			var res = translateCosmosResponse(response);
+			if (!res.isOK()) {
+				return Result.error(res.error());
+			} else {
+				jedis.set(cacheId, value);
+				return Result.ok(obj);
 			}
 
 		} catch( CosmosException ce ) {
@@ -170,17 +166,12 @@ public class DBCosmos implements DB {
 	}
 
 	public <T> Result<T> getOne(String id, String partition, Class<T> clazz) {
-		try {
-			try (var jedis = RedisCache.getCachePool().getResource()) {
-				var cacheId = getCacheId(id, clazz);
-				var obj = jedis.get(cacheId);
-				if (obj != null) {
-					var object = JSON.decode(obj, clazz);
-					return Result.ok(object);
-				}
-			} catch (Exception e) {
-				e.printStackTrace();
-				throw e;
+		try (var jedis = RedisCache.getCachePool().getResource()) {
+			var cacheId = getCacheId(id, clazz);
+			var obj = jedis.get(cacheId);
+			if (obj != null) {
+				var object = JSON.decode(obj, clazz);
+				return Result.ok(object);
 			}
 
 			init();
@@ -207,6 +198,7 @@ public class DBCosmos implements DB {
 			e.printStackTrace();
 			throw e;
 		}
+
 		try {
 
 			init();

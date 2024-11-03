@@ -62,30 +62,6 @@ public class TukanoRestServer extends Application {
 		return singletons;
 	}
 
-
-// 	protected void start() throws Exception {
-	
-// 		ResourceConfig config = new ResourceConfig();
-		
-// 		config.register(RestBlobsResource.class);
-// 		config.register(RestUsersResource.class); 
-// 		config.register(RestShortsResource.class);
-		
-// 		JdkHttpServerFactory.createHttpServer( URI.create(serverURI.replace(IP.hostname(), INETADDR_ANY)), config);
-		
-// 		Log.info(String.format("Tukano Server ready @ %s\n",  serverURI));
-// 	}
-	
-	
-// 	public static void main(String[] args) throws Exception {
-// 		Args.use(args);
-		
-// 		Token.setSecret( Args.valueOf("-secret", ""));
-//		Props.load( Args.valueOf("-props", "").split(","));
-		
-// 		new TukanoRestServer().start();
-// 	}
-
 	public static void main(String[] args) throws Exception {
 		return;
 	}
