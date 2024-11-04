@@ -16,6 +16,7 @@ import com.azure.cosmos.models.CosmosItemResponse;
 import com.azure.cosmos.models.CosmosQueryRequestOptions;
 import com.azure.cosmos.models.PartitionKey;
 import com.azure.cosmos.util.CosmosPagedIterable;
+import com.azure.cosmos.models.CosmosItemOperationType;
 import com.fasterxml.jackson.databind.JsonNode;
 import exceptions.InvalidClassException;
 import java.util.function.Consumer;
@@ -261,16 +262,13 @@ public class DBCosmos implements DB {
 		}
 	}
 
-	//TODO: Read azure documentation
-	//TODO: Decidir o que fazer com transaction
-	//TODO: Separar os varios pedidos
-	//TODO: Usar RedisTransactions
-	//TODO: Indicar as classes a serem afetadas (Map<Class<T>, CosmosBatch)
 	// Nao pode fazer tudo por falta de batches, e necessario criar situacoes especiais
 	public <T> Result<T> transaction(CosmosBatch batch, Class<T> clazz) {
 		try {
 			init();
 			CosmosBatchResponse response;
+			Transaction cacheTransaction = getCacheTransactionFromBatch(batch, clazz);
+			cacheTransaction.exec();
 			if (clazz.equals(User.class)) {
 				response = userContainer.executeCosmosBatch(batch);
 			} else if (clazz.equals(Short.class)) {
@@ -299,11 +297,44 @@ public class DBCosmos implements DB {
 		// CosmosBatchResponse response = container.executeCosmosBatch(batch);
 		// return Result.ok(obj);
 	}
+
+	private <T> Transaction getCacheTransactionFromBatch(CosmosBatch batch, Class<T> clazz) {
+		Transaction cacheTransaction = null;
+		List<CosmosItemOperation> operations = batch.getOperations();
+		for (CosmosItemOperation op : operations) {
+			var item = op.getItem();
+			var id = GetId.getId(item);
+			var value = "";
+			switch (op.getOperationType()) {
+                case CREATE:
+					value = JSON.encode( item );
+					cacheTransaction.set(getCacheId(id, clazz), value);
+                    break;
+                case DELETE:
+					cacheTransaction.del(getCacheId(id, clazz));
+                    break;
+                case PATCH:
+					value = JSON.encode( item );
+					cacheTransaction.set(getCacheId(id, clazz), value);
+                    break;
+                case READ:
+					cacheTransaction.get(getCacheId(id, clazz));
+                    break;
+                case REPLACE:
+					value = JSON.encode( item );
+					cacheTransaction.set(getCacheId(op.getItem(), clazz), value);
+                    break;
+                case UPSERT:
+					value = JSON.encode( item );
+					cacheTransaction.set(getCacheId(op.getItem(), clazz), value);
+                    break;
+                default:
+					break;
+			}
+		}
+		return cacheTransaction;
+	}
 	
-	//TODO: Add remaining operations
-	//TODO: Usar RedisTransactions
-	//TODO: Devia usar transaction ou simplesmente colocar em ordem
-	//TODO: Devia implementar em lista com Operations e Objetos
 	public <T> Result<T> transaction(Map<Operations, List<Object>> operations) {
 		try {
 			init();
@@ -344,7 +375,6 @@ public class DBCosmos implements DB {
 							var value = JSON.encode( item );
 							cacheTransaction.set(getCacheId(id, Likes.class), value);
 						}
-						//TODO: Adicionar a Cache
 					}
 				}
 				if (readOperations != null) {
@@ -367,7 +397,6 @@ public class DBCosmos implements DB {
 							
 							cacheTransaction.get(getCacheId(id, Likes.class));
 						}
-						//TODO: Ler da Cache
 					}
 				}
 				if (replaceOperations != null) {
@@ -418,6 +447,7 @@ public class DBCosmos implements DB {
 						}
 					}
 				}
+				cacheTransaction.exec();
 				var response1 = userContainer.executeBulkOperations(userCosmosItemOperations);
 				var response2 = shortContainer.executeBulkOperations(userCosmosItemOperations);
 				var response3 = followingsContainer.executeBulkOperations(userCosmosItemOperations);
@@ -438,7 +468,6 @@ public class DBCosmos implements DB {
 					if (!res.getResponse().isSuccessStatusCode())
 						return Result.error(ErrorCode.INTERNAL_ERROR);
 				}
-				cacheTransaction.exec();
 				return Result.ok();
 			} catch( Exception x ) {
 				x.printStackTrace();
