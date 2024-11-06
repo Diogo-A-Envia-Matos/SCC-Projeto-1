@@ -89,9 +89,9 @@ public class AzureSystemStorage implements BlobStorage {
 		
 		try {
 
-			var separatedPath = path.split("+");
+			var correctedPath = path.replace("+", "/");
 
-			BlobClient blob = containerClient.getBlobClient(separatedPath[1]);
+			BlobClient blob = containerClient.getBlobClient(correctedPath);
 
 			if(!blob.exists()) {
 				return error(NOT_FOUND);
@@ -117,14 +117,16 @@ public class AzureSystemStorage implements BlobStorage {
 
 		try {
 
-			String[] filePath = path.split("+");
-			String filename = filePath[filePath.length - 1];
+			// String[] filePath = path.split("+");
+			// String filename = filePath[filePath.length - 1];
 			
-			BlobClient blob = containerClient.getBlobClient(path);
+			var correctedPath = path.replace("+", "/");
+
+			BlobClient blob = containerClient.getBlobClient(correctedPath);
 
 			blob.delete();
 
-			log.info("File deleted : " + filename);
+			log.info("File deleted : " + correctedPath);
 
 			return ok();
 
