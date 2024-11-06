@@ -6,15 +6,15 @@ import jakarta.inject.Singleton;
 import tukano.api.Short;
 import tukano.api.Shorts;
 import tukano.api.rest.RestShorts;
-import tukano.impl.JavaNoSqlShorts;
-import tukano.impl.JavaPostgresShorts;
+import tukano.impl.JavaCosmosShorts;
+import tukano.impl.JavaHibernateShorts;
 import utils.Props;
 
 @Singleton
 public class RestShortsResource extends RestResource implements RestShorts {
 
 	static final Shorts impl = Boolean.parseBoolean(Props.get("USE_SQL", "false")) ?
-			JavaPostgresShorts.getInstance() : JavaNoSqlShorts.getInstance();
+			JavaHibernateShorts.getInstance() : JavaCosmosShorts.getInstance();
 		
 	@Override
 	public Short createShort(String userId, String password) {
