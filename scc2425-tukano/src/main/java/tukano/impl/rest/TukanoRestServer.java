@@ -1,26 +1,14 @@
 package tukano.impl.rest;
 
+import jakarta.ws.rs.core.Application;
 import java.util.HashSet;
 import java.util.Set;
-
-import java.net.URI;
 import java.util.logging.Logger;
-
-import org.glassfish.jersey.jdkhttp.JdkHttpServerFactory;
-import org.glassfish.jersey.server.ResourceConfig;
-
-import jakarta.ws.rs.core.Application;
 import tukano.impl.Token;
-import utils.Args;
-import utils.IP;
 import utils.Props;
-
 
 public class TukanoRestServer extends Application {
 	
-	//TODO: Test if flag works
-	public final static boolean USE_SQL = Props.get("DATABASE_TYPE", "noSQL").equals("noSQL") ? false : true;
-
 	final private static Logger Log = Logger.getLogger(TukanoRestServer.class.getName());
 
 	private static final String TOKEN_SECRET = "Token_secret";
@@ -48,7 +36,7 @@ public class TukanoRestServer extends Application {
 		resources.add(RestBlobsResource.class);
 		resources.add(RestUsersResource.class);
 		resources.add(RestShortsResource.class);
-		
+
 		Props.load("azurekeys-region.props"); //place the props file in resources folder under java/main
 	}
 
