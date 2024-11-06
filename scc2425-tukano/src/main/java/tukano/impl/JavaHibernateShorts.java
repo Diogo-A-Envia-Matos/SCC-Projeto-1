@@ -18,7 +18,6 @@ import tukano.impl.data.Following;
 import tukano.impl.data.Likes;
 import tukano.impl.rest.TukanoRestServer;
 import utils.DB;
-import utils.DBCosmos;
 import utils.DBHibernate;
 import utils.GetId;
 
@@ -75,21 +74,15 @@ public class JavaHibernateShorts implements Shorts {
 		return errorOrResult( getShort(shortId), shrt -> {
 			
 			return errorOrResult( okUser( shrt.getOwnerId(), password), user -> {
-				database.deleteOne(shrt);
+				return ((DBHibernate) database).transaction( hibernate -> {
 
-				var query = format("SELECT * FROM Likes WHERE Likes.shortId = '%s'", shortId);
-				var likesToDelete = database.sql(query, Short.class, Likes.class);
-
-				var likesBatch = CosmosBatch.createCosmosBatch(new PartitionKey("userId"));
-
-				for (Likes like: likesToDelete) {
-					likesBatch.deleteItemOperation(GetId.getId(like));
-				}
-
-				((DBCosmos) database).transaction(likesBatch, Likes.class);
-
-				JavaAzureBlobs.getInstance().delete(shrt.getBlobUrl(), Token.get());
-				return null;
+					hibernate.remove( shrt);
+					
+					var query = format("DELETE Likes l WHERE l.shortId = '%s'", shortId);
+					hibernate.createNativeQuery( query, Likes.class).executeUpdate();
+					
+					JavaFileBlobs.getInstance().delete(shrt.getBlobUrl(), Token.get() );
+				});
 			});	
 		});
 	}
@@ -178,7 +171,7 @@ public class JavaHibernateShorts implements Shorts {
 		if( ! Token.isValid( token, userId ) )
 			return error(FORBIDDEN);
 
-		return database.transaction( (hibernate) -> {
+		return ((DBHibernate) database).transaction( (hibernate) -> {
 
 			//delete shorts
 			var query1 = format("DELETE Short s WHERE s.ownerId = '%s'", userId);
