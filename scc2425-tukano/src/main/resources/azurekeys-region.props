@@ -1,8 +1,8 @@
-# Date : 03/11/24, 15:44
-BlobStoreConnection=DefaultEndpointsProtocol=https;AccountName=sto70252northeurope;AccountKey=6wDBFRd3hFv1vnKeEuz0pZpLTNvBipevgWV8ezQ1qA8pctxB9Cv93pu5ZKLRQR56ZwwITdGxIOL/+AStLXU1Qw==;EndpointSuffix=core.windows.net
-COSMOSDB_KEY=Sb6kYqQGTyBz64xzEqkbJ2Y06QKU38UCwCUOBrJXWa8MnhZE1a7EDaJtPPQKUOGYhIsTxt22fqXVACDb7XvI3A==
+# Date : 06/11/24, 09:35
+BlobStoreConnection=DefaultEndpointsProtocol=https;AccountName=sto70252northeurope;AccountKey=jL6c9JOV2ZaszCm2CrHk7MXx/lg2vIP6Nit2coCO6zeuxVLf5O8+qj7Z9xJp2GZQKEAkPVB1dykA+ASt1KI+EQ==;EndpointSuffix=core.windows.net
+COSMOSDB_KEY=qSshVRijsmNAacxY3F1R7huvtabLOdZtEShOce8j2IBiZLtMLlWrTuq5nrAp1NXVOX5qSHMXB2UhACDbRw8z2Q==
 COSMOSDB_URL=https://cosmos70252.documents.azure.com:443/
 COSMOSDB_DATABASE=cosmosdb70252
-REDIS_KEY=wIOPRrOpAqI1Cx0xduPcZVki4B47y6ushAzCaHwk9Gg=
+REDIS_KEY=ReyKmHeQ3cxmglLnkso9zUhrS4SE37d9LAzCaKkzIEI=
 REDIS_URL=redis70252northeurope.redis.cache.windows.net
 DATABASE_TYPE=noSQL
