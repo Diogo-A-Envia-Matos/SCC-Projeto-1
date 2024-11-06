@@ -86,7 +86,7 @@ public class JavaHibernateUsers implements Users {
 		String pattern = Objects.toString(p, "");
 		Log.info(() -> format("searchUsers : patterns = '%s'\n", pattern));
 
-		String query = format("SELECT * FROM User u WHERE UPPER(u.id) LIKE '%%%s%%'", pattern.toUpperCase());
+		String query = format("SELECT * FROM DataUser u WHERE UPPER(u.id) LIKE '%%%s%%'", pattern.toUpperCase());
 		var hits = database.sql(query, User.class)
 				.stream()
 				.map(User::copyWithoutPassword)
