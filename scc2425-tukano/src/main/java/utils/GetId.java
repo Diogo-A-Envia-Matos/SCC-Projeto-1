@@ -14,7 +14,7 @@ public class GetId {
             return ((User) obj).getId();
         }
         else if (obj instanceof Short) {
-            return ((Short) obj).getId();
+            return ((Short) obj).getOwnerId();
         }
         else if (obj instanceof Following) {
             return String.format("%s-%s", ((Following) obj).getFollower(), ((Following) obj).getFollowee());
