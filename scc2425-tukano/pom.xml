@@ -1,6 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>scc2425</groupId>
 	<artifactId>tukano</artifactId>
@@ -43,7 +42,7 @@
 			<plugin>
 				<artifactId>maven-assembly-plugin</artifactId>
 				<configuration>
-					<archive></archive>
+					<archive/>
 					<descriptorRefs>
 						<descriptorRef>jar-with-dependencies</descriptorRef>
 					</descriptorRefs>
@@ -67,7 +66,30 @@
 			<plugin> 
 				<groupId>com.microsoft.azure</groupId>
 				<artifactId>azure-webapp-maven-plugin</artifactId>  
-				<version>2.13.0</version>  
+				<version>2.13.0</version>
+			    <configuration>
+			        <schemaVersion>v2</schemaVersion>
+			        <subscriptionId>454fa962-d70c-44d5-9a8c-6ff30e4350b8</subscriptionId>
+			        <resourceGroup>tukano-1730835561603-rg</resourceGroup>
+			        <appName>tukano-1730835561603</appName>
+			        <pricingTier>F1</pricingTier>
+			        <region>northeurope</region>
+			        <runtime>
+			            <os>Linux</os>
+			            <javaVersion>Java 17</javaVersion>
+			            <webContainer>Tomcat 10.0</webContainer>
+			        </runtime>
+			        <deployment>
+			            <resources>
+			                <resource>
+			                    <directory>${project.basedir}/target</directory>
+			                    <includes>
+			                        <include>*.war</include>
+			                    </includes>
+			                </resource>
+			            </resources>
+			        </deployment>
+			    </configuration>
 			</plugin>
 		</plugins>
 	</build>

@@ -192,13 +192,13 @@ public class JavaCosmosShorts implements Shorts {
 		//delete follows
 		var query2 = format("SELECT * FROM Following f WHERE f.follower = '%s' OR f.followee = '%s'", userId, userId);	
 		List<Following> followingsToRemove = database.sql(query2, Following.class);
-		var resFollowings = database.deleteCollection(shortsToRemove);
+		var resFollowings = database.deleteCollection(followingsToRemove);
 		Log.info(() -> format("deleteAllShort : deleted %s followings \n", countDeletedItems(resFollowings)));
 
 		//delete likes
 		var query3 = format("SELECT * FROM Likes l WHERE l.ownerId = '%s' OR l.userId = '%s'", userId, userId);
 		List<Likes> likesToRemove = database.sql(query3, Likes.class);
-		var resLikes = database.deleteCollection(shortsToRemove);
+		var resLikes = database.deleteCollection(likesToRemove);
 		Log.info(() -> format("deleteAllShort : deleted %s likes \n", countDeletedItems(resLikes)));
 
 		return Result.ok();
