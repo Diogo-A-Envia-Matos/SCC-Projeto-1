@@ -61,36 +61,21 @@ public class AzureSystemStorage implements BlobStorage {
 
 			BinaryData data = BinaryData.fromBytes(bytes);
 
-			try (var jedis = RedisCache.getCachePool().getResource()) {
-				var separatedPath = path.split("/");
-				var cacheId = getCacheId(separatedPath[separatedPath.length - 1]);
-				if (jedis.exists(cacheId)) {
-					return Result.error( ErrorCode.CONFLICT );
-				}
-					
-				BlobClient blob = containerClient.getBlobClient(path);
+			BlobClient blob = containerClient.getBlobClient(path);
 
-				if (blob.exists()) {
-					byte[] blobData = blob.downloadContent().toBytes();
-					if (Arrays.equals(Hash.sha256(bytes), Hash.sha256(blobData)))
-						return ok();
-					else
-						return error(CONFLICT);
-				}
-
-				blob.upload(data);
-				
-				log.info( "File uploaded : " + path);
-
-				var value = JSON.encode(bytes);
-				jedis.set(cacheId, value);
-				
-				return ok();
-			} catch (Exception e) {
-				e.printStackTrace();
-				throw e;
+			if (blob.exists()) {
+				byte[] blobData = blob.downloadContent().toBytes();
+				if (Arrays.equals(Hash.sha256(bytes), Hash.sha256(blobData)))
+					return ok();
+				else
+					return error(CONFLICT);
 			}
 
+			blob.upload(data);
+			
+			log.info( "File uploaded : " + path);
+			
+			return ok();
 		} catch( Exception e) {
 			log.warning(e.getMessage());
 			return error(INTERNAL_ERROR);
@@ -104,36 +89,9 @@ public class AzureSystemStorage implements BlobStorage {
 		
 		try {
 
-			try (var jedis = RedisCache.getCachePool().getResource()) {
-				var separatedPath = path.split("/");
-				var cacheId = getCacheId(separatedPath[separatedPath.length - 1]);
-				log.info( "Before get");
-				var obj = jedis.get(cacheId);
-				log.info( "After get");
-				if (obj != null) {
-					log.info( "Before decode");
-					var data = JSON.decode(obj, Object.class);
+			var separatedPath = path.split("+");
 
-					ByteArrayOutputStream baos = new ByteArrayOutputStream();
-					try (ObjectOutputStream stream = new ObjectOutputStream(baos)) {
-						stream.writeObject(data);
-						byte[] arr = baos.toByteArray();
-						
-						log.info( "Blob size : " + arr.length);
-
-						return Result.ok(arr);
-					} catch (IOException ioe) {
-						ioe.printStackTrace();
-					}
-					throw new RuntimeException();
-
-				}
-			} catch (Exception e) {
-				e.printStackTrace();
-				throw e;
-			}
-
-			BlobClient blob = containerClient.getBlobClient(path);
+			BlobClient blob = containerClient.getBlobClient(separatedPath[1]);
 
 			if(!blob.exists()) {
 				return error(NOT_FOUND);
@@ -159,37 +117,20 @@ public class AzureSystemStorage implements BlobStorage {
 
 		try {
 
-			String[] filePath = path.split("/");
+			String[] filePath = path.split("+");
 			String filename = filePath[filePath.length - 1];
+			
+			BlobClient blob = containerClient.getBlobClient(path);
 
-			try (var jedis = RedisCache.getCachePool().getResource()) {
-				var cacheId = getCacheId(filename);
-				jedis.del(cacheId);
-				
-				BlobClient blob = containerClient.getBlobClient(path);
+			blob.delete();
 
-				if(!blob.exists()) {
-					return error(NOT_FOUND);
-				}
+			log.info("File deleted : " + filename);
 
-				blob.delete();
-
-				log.info("File deleted : " + filename);
-
-				return ok();
-
-			} catch (Exception e) {
-				e.printStackTrace();
-				throw e;
-			}
+			return ok();
 
 		} catch( Exception e) {
 			log.warning(e.getMessage());
 			return error(INTERNAL_ERROR);
 		}
-	}
-
-	private String getCacheId(String id) {
-		return "blob:" + id;
 	}
 }

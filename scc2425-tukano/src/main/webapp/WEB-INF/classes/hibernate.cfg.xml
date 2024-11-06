@@ -2,8 +2,9 @@
 <hibernate-configuration>
 	<session-factory>
 		<!-- JDBC Database connection settings -->
-		<property name="connection.driver_class">org.hsqldb.jdbcDriver</property>
-		<property name="connection.url">jdbc:hsqldb:mem:tukano</property>
+		<property name="connection.driver_class">cdata.cosmosdb.CosmosDBDriver</property>
+		<property name="connection.url">jdbc:cosmosdb:AccountEndpoint=;AccountKey=jL6c9JOV2ZaszCm2CrHk7MXx/lg2vIP6Nit2coCO6zeuxVLf5O8+qj7Z9xJp2GZQKEAkPVB1dykA+ASt1KI+EQ==;</property>
+		<property
 		<property name="connection.username">sa</property>
 		<property name="connection.password"></property>
 		<!-- JDBC connection pool settings ... using built-in test pool -->
