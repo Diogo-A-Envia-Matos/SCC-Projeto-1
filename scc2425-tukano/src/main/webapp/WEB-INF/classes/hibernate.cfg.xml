@@ -3,10 +3,10 @@
 	<session-factory>
 		<!-- JDBC Database connection settings -->
 		<property name="connection.driver_class">cdata.cosmosdb.CosmosDBDriver</property>
-		<property name="connection.url">jdbc:cosmosdb:AccountEndpoint=;AccountKey=jL6c9JOV2ZaszCm2CrHk7MXx/lg2vIP6Nit2coCO6zeuxVLf5O8+qj7Z9xJp2GZQKEAkPVB1dykA+ASt1KI+EQ==;</property>
-		<property
-		<property name="connection.username">sa</property>
-		<property name="connection.password"></property>
+		<property name="connection.url">jdbc:cosmosdb:AccountEndpoint=https://cosmos70252.documents.azure.com:443/;AccountKey=qSshVRijsmNAacxY3F1R7huvtabLOdZtEShOce8j2IBiZLtMLlWrTuq5nrAp1NXVOX5qSHMXB2UhACDbRw8z2Q==;</property><!--?xml version="1.0" encoding="UTF-8"?-->
+		<property name="hibernate.dialect">org.hibernate.dialect.SQLServerDialect</property>
+		<property name="connection.username">citus</property>
+		<property name="connection.password">Adminpassword1</property>
 		<!-- JDBC connection pool settings ... using built-in test pool -->
 		<property name="connection.pool_size">64</property>
 		<!-- Echo the SQL to stdout -->
