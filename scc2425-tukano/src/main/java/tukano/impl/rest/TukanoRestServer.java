@@ -18,10 +18,10 @@ public class TukanoRestServer extends Application {
 
 	// https://tukano-1730835561603.azurewebsites.net
 	static final String INETADDR_ANY = "0.0.0.0";
-	static String SERVER_BASE_URI = "http://%s/tukano/rest";
-	// static String SERVER_BASE_URI = "http://%s:%s/tukano/rest";
-	// static String HOST_NAME = "127.0.0.1";
-	static String HOST_NAME = "tukano-1730835561603.azurewebsites.net";
+	// static String SERVER_BASE_URI = "http://%s/tukano/rest";
+	static String SERVER_BASE_URI = "http://%s:%s/tukano/rest";
+	static String HOST_NAME = "127.0.0.1";
+	// static String HOST_NAME = "tukano-1730835561603.azurewebsites.net";
 
 	public static final int PORT = 8080;
 
@@ -40,8 +40,8 @@ public class TukanoRestServer extends Application {
 		// had to hard code - ip.hostname() gave wrong host
 		Props.load("azurekeys-region.props"); //place the props file in resources folder under java/main
 
-		serverURI = String.format(SERVER_BASE_URI, IP.hostname());
-		// serverURI = String.format(SERVER_BASE_URI, HOST_NAME, PORT);
+		// serverURI = String.format(SERVER_BASE_URI, IP.hostname());
+		serverURI = String.format(SERVER_BASE_URI, HOST_NAME, PORT);
 		resources.add(RestBlobsResource.class);
 		resources.add(RestUsersResource.class);
 		resources.add(RestShortsResource.class);

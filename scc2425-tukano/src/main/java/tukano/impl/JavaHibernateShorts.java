@@ -14,9 +14,11 @@ import tukano.api.Shorts;
 import tukano.api.User;
 import tukano.impl.data.Following;
 import tukano.impl.data.Likes;
+import tukano.impl.rest.RestBlobsResource;
 import tukano.impl.rest.TukanoRestServer;
 import utils.DB;
 import utils.DBHibernate;
+import utils.Props;
 
 public class JavaHibernateShorts implements Shorts {
 
@@ -25,6 +27,9 @@ public class JavaHibernateShorts implements Shorts {
 	private static Shorts instance;
 
 	private static DB database; // Choose between CosmosDB or Hibernate
+
+	private static Blobs blobDatabase = Boolean.parseBoolean(Props.get("USE_AZURE_BLOB_STORAGE", "true")) ?
+			JavaAzureBlobs.getInstance() : JavaFileBlobs.getInstance();
 
 	synchronized public static Shorts getInstance() {
 		if( instance == null )
@@ -78,7 +83,7 @@ public class JavaHibernateShorts implements Shorts {
 					var query = format("DELETE Likes l WHERE l.shortId = '%s'", shortId);
 					hibernate.createNativeQuery( query, Likes.class).executeUpdate();
 					
-					JavaFileBlobs.getInstance().delete(shrt.getBlobUrl(), Token.get() );
+					blobDatabase.delete(shrt.getBlobUrl(), Token.get() );
 				});
 			});	
 		});
@@ -150,7 +155,7 @@ public class JavaHibernateShorts implements Shorts {
 	}
 		
 	protected Result<User> okUser( String userId, String pwd) {
-		return JavaNoSQLUsers.getInstance().getUser(userId, pwd);
+		return JavaHibernateUsers.getInstance().getUser(userId, pwd);
 	}
 	
 	private Result<Void> okUser( String userId ) {

@@ -8,11 +8,14 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
+
+import tukano.api.Blobs;
 import tukano.api.Result;
 import tukano.api.User;
 import tukano.api.Users;
 import utils.DB;
 import utils.DBHibernate;
+import utils.Props;
 
 public class JavaHibernateUsers implements Users {
 
@@ -21,6 +24,9 @@ public class JavaHibernateUsers implements Users {
 	private static Users instance;
 
 	private static DB database; // Choose between CosmosDB or Hibernate
+	
+	private static Blobs blobDatabase = Boolean.parseBoolean(Props.get("USE_AZURE_BLOB_STORAGE", "true")) ?
+		JavaAzureBlobs.getInstance() : JavaFileBlobs.getInstance();
 
 	synchronized public static Users getInstance() {
 		if( instance == null )
@@ -73,8 +79,8 @@ public class JavaHibernateUsers implements Users {
 
 			// Delete user shorts and related info asynchronously in a separate thread
 			Executors.defaultThreadFactory().newThread( () -> {
-				JavaNoSQLShorts.getInstance().deleteAllShorts(userId, pwd, Token.get(userId));
-				JavaAzureBlobs.getInstance().deleteAllBlobs(userId, Token.get(userId));
+				JavaHibernateShorts.getInstance().deleteAllShorts(userId, pwd, Token.get(userId));
+				blobDatabase.deleteAllBlobs(userId, Token.get(userId));
 			}).start();
 			
 			return database.deleteOne( user);

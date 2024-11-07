@@ -35,9 +35,4 @@ public interface DB {
 	<T> Result<T> updateOne(T obj);
 	
 	<T> Result<T> insertOne( T obj);
-	
-	//TODO: Decide what to do with transaction (create additional interfaces for transactions, or generalize transaction?)
-	// <T> Result<T> transaction( Consumer<Session> c);
-	
-	// <T> Result<T> transaction( Function<Session, Result<T>> func);
 }

@@ -10,7 +10,7 @@ import utils.Props;
 @Singleton
 public class RestBlobsResource extends RestResource implements RestBlobs {
 
-	static final Blobs impl = Boolean.parseBoolean(Props.get("USE_BLOB_STORAGE", "false")) ?
+	static final Blobs impl = Boolean.parseBoolean(Props.get("USE_AZURE_BLOB_STORAGE", "true")) ?
 			JavaAzureBlobs.getInstance() : JavaFileBlobs.getInstance();
 
 	@Override

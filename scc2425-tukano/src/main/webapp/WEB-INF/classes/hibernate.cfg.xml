@@ -2,9 +2,9 @@
 <hibernate-configuration>
 	<session-factory>
 		<!-- JDBC Database connection settings -->
-		<property name="connection.driver_class">cdata.cosmosdb.CosmosDBDriver</property>
-		<property name="connection.url">jdbc:cosmosdb:AccountEndpoint=https://cosmos70252.documents.azure.com:443/;AccountKey=qSshVRijsmNAacxY3F1R7huvtabLOdZtEShOce8j2IBiZLtMLlWrTuq5nrAp1NXVOX5qSHMXB2UhACDbRw8z2Q==;</property><!--?xml version="1.0" encoding="UTF-8"?-->
-		<property name="hibernate.dialect">org.hibernate.dialect.SQLServerDialect</property>
+		<property name="connection.driver_class">org.postgresql.Driver</property>
+		<property name="connection.url">jdbc:postgresql://c-postgresql.jlnkodp4hladvb.postgres.cosmos.azure.com:5432/citus?user=citus&amp;password=Adminpassword1&amp;sslmode=require</property>
+		<!-- <property name="hibernate.dialect">org.hibernate.dialect.SQLServerDialect</property> -->
 		<property name="connection.username">citus</property>
 		<property name="connection.password">Adminpassword1</property>
 		<!-- JDBC connection pool settings ... using built-in test pool -->
