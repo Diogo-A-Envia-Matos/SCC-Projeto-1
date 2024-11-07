@@ -73,7 +73,7 @@ public class JavaHibernateUsers implements Users {
 
 			// Delete user shorts and related info asynchronously in a separate thread
 			Executors.defaultThreadFactory().newThread( () -> {
-				JavaCosmosShorts.getInstance().deleteAllShorts(userId, pwd, Token.get(userId));
+				JavaNoSQLShorts.getInstance().deleteAllShorts(userId, pwd, Token.get(userId));
 				JavaAzureBlobs.getInstance().deleteAllBlobs(userId, Token.get(userId));
 			}).start();
 			

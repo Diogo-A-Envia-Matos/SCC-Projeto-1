@@ -4,8 +4,6 @@ import static java.lang.String.*;
 import static tukano.api.Result.ErrorCode.*;
 import static tukano.api.Result.*;
 
-import com.azure.cosmos.models.CosmosBatch;
-import com.azure.cosmos.models.PartitionKey;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Logger;
@@ -19,7 +17,6 @@ import tukano.impl.data.Likes;
 import tukano.impl.rest.TukanoRestServer;
 import utils.DB;
 import utils.DBHibernate;
-import utils.GetId;
 
 public class JavaHibernateShorts implements Shorts {
 
@@ -153,7 +150,7 @@ public class JavaHibernateShorts implements Shorts {
 	}
 		
 	protected Result<User> okUser( String userId, String pwd) {
-		return JavaCosmosUsers.getInstance().getUser(userId, pwd);
+		return JavaNoSQLUsers.getInstance().getUser(userId, pwd);
 	}
 	
 	private Result<Void> okUser( String userId ) {

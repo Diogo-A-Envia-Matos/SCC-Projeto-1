@@ -5,15 +5,15 @@ import java.util.List;
 import tukano.api.User;
 import tukano.api.Users;
 import tukano.api.rest.RestUsers;
+import tukano.impl.JavaNoSQLUsers;
 import tukano.impl.JavaHibernateUsers;
-import tukano.impl.JavaCosmosUsers;
 import utils.Props;
 
 @Singleton
 public class RestUsersResource extends RestResource implements RestUsers {
 	
 	static final Users impl = Boolean.parseBoolean(Props.get("USE_SQL", "false")) ?
-			JavaHibernateUsers.getInstance() : JavaCosmosUsers.getInstance();
+			JavaHibernateUsers.getInstance() : JavaNoSQLUsers.getInstance();
 
 	@Override
 	public String createUser(User user) {
