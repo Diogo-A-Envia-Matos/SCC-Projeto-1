@@ -15,9 +15,9 @@ import utils.DB;
 import utils.DBCosmos;
 // import utils.DBHibernate;
 
-public class JavaCosmosUsers implements Users {
+public class JavaNoSQLUsers implements Users {
 	
-	private static Logger Log = Logger.getLogger(JavaCosmosUsers.class.getName());
+	private static Logger Log = Logger.getLogger(JavaNoSQLUsers.class.getName());
 
 	private static Users instance;
 
@@ -25,11 +25,11 @@ public class JavaCosmosUsers implements Users {
 	
 	synchronized public static Users getInstance() {
 		if( instance == null )
-			instance = new JavaCosmosUsers();
+			instance = new JavaNoSQLUsers();
 		return instance;
 	}
 	
-	private JavaCosmosUsers() {
+	private JavaNoSQLUsers() {
 		database = DBCosmos.getInstance();
 	}
 	
@@ -74,7 +74,7 @@ public class JavaCosmosUsers implements Users {
 
 			// Delete user shorts and related info asynchronously in a separate thread
 			Executors.defaultThreadFactory().newThread( () -> {
-				JavaCosmosShorts.getInstance().deleteAllShorts(userId, pwd, Token.get(userId));
+				JavaNoSQLShorts.getInstance().deleteAllShorts(userId, pwd, Token.get(userId));
 				JavaAzureBlobs.getInstance().deleteAllBlobs(userId, Token.get(userId));
 			}).start();
 			

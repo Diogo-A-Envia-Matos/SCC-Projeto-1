@@ -19,9 +19,9 @@ import tukano.impl.rest.TukanoRestServer;
 import utils.DB;
 import utils.DBCosmos;
 
-public class JavaCosmosShorts implements Shorts {
+public class JavaNoSQLShorts implements Shorts {
 
-	private static Logger Log = Logger.getLogger(JavaCosmosShorts.class.getName());
+	private static Logger Log = Logger.getLogger(JavaNoSQLShorts.class.getName());
 	
 	private static Shorts instance;
 	
@@ -29,11 +29,11 @@ public class JavaCosmosShorts implements Shorts {
 	
 	synchronized public static Shorts getInstance() {
 		if( instance == null )
-			instance = new JavaCosmosShorts();
+			instance = new JavaNoSQLShorts();
 		return instance;
 	}
 	
-	private JavaCosmosShorts() {
+	private JavaNoSQLShorts() {
 		database = DBCosmos.getInstance();
 	}
 	
@@ -154,24 +154,31 @@ public class JavaCosmosShorts implements Shorts {
 
 		return errorOrValue( okUser(userId, password), user -> {
 			final String queryFollowee = String.format("SELECT f.followee FROM Followings f WHERE f.follower = '%s'", userId);
-			final List<String> followees = database.sql(queryFollowee, Following.class, String.class);
+			final List<String> followeesJson = database.sql(queryFollowee, Following.class, String.class);
 
-			final String queryShorts = String.format("SELECT s.id, s.timestamp FROM Shorts s WHERE s.ownerId IN ('%s', %s) ORDER BY s.timestamp DESC",
+			final List<String> followees = followeesJson.stream()
+					.map(jsonString -> extractFollowee(jsonString))
+					.toList();
+
+			final String queryShorts = String.format("SELECT s.id, s.timestamp FROM Shorts s WHERE s.ownerId IN ('%s'%s) ORDER BY s.timestamp DESC",
 					userId, formatStringCollection(followees));
 			return database.sql(queryShorts, Short.class, String.class);
 		});
 
 	}
+
+	public String extractFollowee(String s) {
+		return s.split("\"")[3];
+	}
+
+
 	private String formatStringCollection(List<String> followees) {
 		final Iterator<String> iterator = followees.iterator();
 
-		if (! iterator.hasNext()) {
-			return "";
-		}
-		String res = String.format("'%s'", iterator.next());
+		String res = "";
 
 		while (iterator.hasNext()){
-			String s = String.format("', %s'", iterator.next());
+			String s = String.format(", '%s'", iterator.next());
 			res = res.concat(s);
 		}
 		return res;
@@ -205,7 +212,7 @@ public class JavaCosmosShorts implements Shorts {
 	}
 
 	protected Result<User> okUser( String userId, String pwd) {
-		return JavaCosmosUsers.getInstance().getUser(userId, pwd);
+		return JavaNoSQLUsers.getInstance().getUser(userId, pwd);
 	}
 
 	private Result<Void> okUser( String userId ) {
