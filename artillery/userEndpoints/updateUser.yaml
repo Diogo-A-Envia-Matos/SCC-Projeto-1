@@ -1,0 +1,34 @@
+config:
+    target: http://tukano-1730835561603.azurewebsites.net/tukano/rest
+    phases:
+        - name: simple_update
+          duration: 1
+          arrivalRate: 1
+    # payload:
+    #     path: ../data/users.csv
+    #     order: sequence # selects users sequentially, default is random
+    #     #loadAll: true # load the whole CSV
+    #     skipHeader: true # The first line is a header, so we want to skip it
+    #     delimiter: "," # standard delimiter
+    #     skipEmptyLines: true # not important in our case
+    #     fields:
+    #         - "id"
+    #         - "pwd"
+    #         - "email"
+    #         - "displayName"
+scenarios:
+    - name: TuKanoRegister
+      flow:
+        - put:
+            url: /users/kgallagher2?pwd=easypass
+            headers:
+                Content-Type: application/json
+            json:
+                id: "kgallagher2" # this parameter is filled from the fields above
+                pwd: "newPasswordLmao"
+                email: "k.gallagher1234@fct.unl.pt"
+                displayName: "Kevin Gallagher1234"
+                # id: "{{ id }}" # this parameter is filled from the fields above
+                # pwd: "{{ pwd }}"
+                # email: "{{ email }}"
+                # displayName: "{{ displayName }}"

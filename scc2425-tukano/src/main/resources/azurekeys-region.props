@@ -5,5 +5,4 @@ COSMOSDB_URL=https://cosmos70252.documents.azure.com:443/
 COSMOSDB_DATABASE=cosmosdb70252
 REDIS_KEY=ReyKmHeQ3cxmglLnkso9zUhrS4SE37d9LAzCaKkzIEI=
 REDIS_URL=redis70252northeurope.redis.cache.windows.net
-DATABASE_TYPE=NoSQL
 USE_SQL=false

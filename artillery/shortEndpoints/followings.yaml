@@ -1,0 +1,55 @@
+config:
+    target: http://tukano-1730835561603.azurewebsites.net/tukano/rest
+    plugins:
+        metrics-by-endpoint: {} # Used to get metrics for each endpoint individually.
+    processor: ./test-utils.js
+    phases:
+        - name: follow_short
+          duration: 1
+          arrivalRate: 3
+    payload:
+      - path: ../data/users.csv
+        order: sequence # selects users sequentially, default is random
+        #loadAll: true # load the whole CSV
+        skipHeader: true # The first line is a header, so we want to skip it
+        delimiter: "," # standard delimiter
+        skipEmptyLines: true # not important in our case
+        fields:
+          - "id"
+          - "pwd"
+          - "email"
+          - "displayName"
+      - path: ../data/follow.csv
+        order: sequence # selects users sequentially, default is random
+        #loadAll: true # load the whole CSV
+        skipHeader: true # The first line is a header, so we want to skip it
+        delimiter: "," # standard delimiter
+        skipEmptyLines: true # not important in our case
+        fields:
+          - "userid1"
+          - "userid2"
+          - "pwd1"
+
+scenarios:
+    - name: TuKanoFollowing
+      flow:
+        - post:
+            url: /users/
+            headers:
+                Content-Type: application/json
+            json:
+                id: "{{ id }}" # this parameter is filled from the fields above
+                pwd: "{{ pwd }}"
+                email: "{{ email }}"
+                displayName: "{{ displayName }}"
+
+        - post:
+            url: /shorts/{{ userid1 }}/{{ userid2 }}/followers?pwd={{ pwd1 }}
+            headers:
+                Content-Type: application/json
+        - get:
+            url: /shorts/{{ id }}/followers?pwd={{ pwd }}
+            headers:
+                Content-Type: application/json
+            afterResponse: "processFollowersReply"
+  

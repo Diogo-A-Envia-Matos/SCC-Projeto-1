@@ -1,0 +1,34 @@
+config:
+  target: http://tukano-1730835561603.azurewebsites.net/tukano/rest
+  plugins:
+    metrics-by-endpoint: {} # Used to get metrics for each endpoint individually.
+  processor: ./test-utils.js
+  phases:
+  - name: "Warm up"    # WARM UP PHASE: duration: 10s, starting with 1 new client/sec up to 5 new clients/sec
+    duration: 10
+    arrivalRate: 1
+    rampTo: 5
+  - name: "Main test"    # MAIN TESTS: duration: 30s, with 10 new clients/sec. Should be varied depending on scenario.
+    duration: 30
+    arrivalRate: 10
+    
+scenarios:
+  - name: 'Register user and Create short'
+    weight: 1
+    flow:
+      - post:
+          url: /users/
+          headers:
+            Content-Type: application/json
+            Accept: application/json
+          beforeRequest: "uploadRandomizedUser"
+          capture:
+              - json: $.id
+                as: userId
+              - json: $.pwd
+                as: userPwd
+      - post:
+          url: /shorts/{{ userId }}?pwd={{ userPwd }}
+          headers:
+              Content-Type: application/json
+          afterResponse: "processGetShortsReply"
