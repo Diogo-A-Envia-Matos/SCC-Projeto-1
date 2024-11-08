@@ -162,10 +162,13 @@ public class JavaNoSQLShorts implements Shorts {
 
 		return errorOrValue( okUser(userId, password), user -> {
 			final String queryFollowee = String.format("SELECT f.followee FROM Followings f WHERE f.follower = '%s'", userId);
-			final List<String> followees = database.sql(queryFollowee, Following.class, String.class);;
+			final List<String> followees = database.sql(queryFollowee, Following.class, String.class);
 
-			final String queryShorts = String.format("SELECT s.id, s.timestamp FROM Shorts s WHERE s.ownerId IN ('%s'%s) ORDER BY s.timestamp DESC",
-					userId, formatStringCollection(followees));
+			if (followees.isEmpty())
+				return List.of();
+
+			final String queryShorts = String.format("SELECT s.id, s.timestamp FROM Shorts s WHERE s.ownerId IN (%s) ORDER BY s.timestamp DESC",
+					formatStringCollection(followees));
 			return database.sql(queryShorts, Short.class, String.class);
 		});
 	}
@@ -173,7 +176,7 @@ public class JavaNoSQLShorts implements Shorts {
 	private String formatStringCollection(List<String> followees) {
 		final Iterator<String> iterator = followees.iterator();
 
-		String res = "";
+		String res = String.format("'%s'", iterator.next());
 
 		while (iterator.hasNext()){
 			String s = String.format(", '%s'", iterator.next());
