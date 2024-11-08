@@ -18,6 +18,7 @@ import tukano.impl.data.Likes;
 import tukano.impl.rest.TukanoRestServer;
 import utils.DB;
 import utils.DBCosmos;
+import utils.Props;
 
 public class JavaNoSQLShorts implements Shorts {
 
@@ -26,6 +27,9 @@ public class JavaNoSQLShorts implements Shorts {
 	private static Shorts instance;
 	
 	private static DB database; // Choose between CosmosDB or Hibernate
+
+	private static Blobs blobDatabase = Boolean.parseBoolean(Props.get("USE_AZURE_BLOB_STORAGE", "true")) ?
+		JavaAzureBlobs.getInstance() : JavaFileBlobs.getInstance();
 	
 	synchronized public static Shorts getInstance() {
 		if( instance == null )
@@ -83,7 +87,7 @@ public class JavaNoSQLShorts implements Shorts {
 					String blobUrl = url[0];
 					String token = url[1];
 
-					var resBlob = JavaAzureBlobs.getInstance().delete(blobUrl, token);
+					var resBlob = blobDatabase.delete(blobUrl, token);
 					Log.info(() -> format(resBlob.isOK() ? "deleteShort : deleted blob \n" : "deleteShort : couldn't delete blob\n"));
 					return Result.ok();
 			})
