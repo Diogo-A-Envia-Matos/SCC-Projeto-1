@@ -130,6 +130,10 @@ public class JavaNoSQLShorts implements Shorts {
 			return Result.error(CONFLICT);
 		}
 
+		if (!res.isOK() && !isLiked) {
+			return Result.error(NOT_FOUND);
+		}
+
 		return errorOrResult( getShort(shortId), shrt -> {
 			var l = new Likes(userId, shortId, shrt.getOwnerId());
 			return errorOrVoid( okUser( userId, password), isLiked ? database.insertOne( l ) : database.deleteOne( l ));	
@@ -154,23 +158,13 @@ public class JavaNoSQLShorts implements Shorts {
 
 		return errorOrValue( okUser(userId, password), user -> {
 			final String queryFollowee = String.format("SELECT f.followee FROM Followings f WHERE f.follower = '%s'", userId);
-			final List<String> followeesJson = database.sql(queryFollowee, Following.class, String.class);
-
-			final List<String> followees = followeesJson.stream()
-					.map(jsonString -> extractFollowee(jsonString))
-					.toList();
+			final List<String> followees = database.sql(queryFollowee, Following.class, String.class);;
 
 			final String queryShorts = String.format("SELECT s.id, s.timestamp FROM Shorts s WHERE s.ownerId IN ('%s'%s) ORDER BY s.timestamp DESC",
 					userId, formatStringCollection(followees));
 			return database.sql(queryShorts, Short.class, String.class);
 		});
-
 	}
-
-	public String extractFollowee(String s) {
-		return s.split("\"")[3];
-	}
-
 
 	private String formatStringCollection(List<String> followees) {
 		final Iterator<String> iterator = followees.iterator();

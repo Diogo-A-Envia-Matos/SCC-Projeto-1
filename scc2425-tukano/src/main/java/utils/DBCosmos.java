@@ -568,26 +568,34 @@ public class DBCosmos implements DB {
 	private <T> CosmosContainer getClassContainer(Class<T> clazz) {
 		if (clazz.equals(User.class)) {
 			return userContainer;
+
 		} else if (clazz.equals(Short.class)) {
 			return shortContainer;
+
 		} else if (clazz.equals(Following.class)) {
 			return followingsContainer;
+
 		} else if (clazz.equals(Likes.class)) {
 			return likesContainer;
 		}
+		
 		throw new InvalidClassException("Invalid Class: " + clazz.toString());
 	}
 
     private <T> PartitionKey getPartitionKey(T obj) {
         if (obj.getClass().equals(User.class)) {
             return new PartitionKey(GetId.getId(obj));
+
         } else if (obj.getClass().equals(Short.class)) {
             return new PartitionKey(((Short) obj).getOwnerId());
+
         } else if (obj.getClass().equals(Following.class)) {
             return new PartitionKey(((Following) obj).getFollowee());
+
         } else if (obj.getClass().equals(Likes.class)) {
             return new PartitionKey(((Likes) obj).getUserId());
         }
+
         throw new InvalidClassException("Invalid Class: " + obj.getClass().toString());
     }
 
@@ -598,7 +606,7 @@ public class DBCosmos implements DB {
 		}
 
 		if (outputClazz.equals(String.class)) {
-			return (U) item.toString();
+			return (U) item.elements().next().asText();
 		}
 
 		throw new InvalidClassException("The following class is neither String or Long Class: " + outputClazz.toString());
@@ -642,8 +650,4 @@ public class DBCosmos implements DB {
 			default -> ErrorCode.INTERNAL_ERROR;
 		};
 	}
-
-	// public <T> Result<T> transaction(Consumer<Session> c) {
-	// 	throw new RuntimeException("unused method");
-	// }
 }

@@ -6,7 +6,6 @@ import tukano.api.Short;
 import tukano.impl.data.Following;
 import tukano.impl.data.Likes;
 
-//TODO: Decide how ids should be saved in cosmosDB
 public class GetId {
 
     public static String getId(Object obj) {

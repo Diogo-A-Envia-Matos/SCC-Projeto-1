@@ -80,7 +80,7 @@ public class JavaHibernateShorts implements Shorts {
 
 					hibernate.remove( shrt);
 					
-					var query = format("DELETE Likes l WHERE l.shortId = '%s'", shortId);
+					var query = format("DELETE FROM Likes l WHERE l.shortId = '%s'", shortId);
 					hibernate.createNativeQuery( query, Likes.class).executeUpdate();
 					
 					blobDatabase.delete(shrt.getBlobUrl(), Token.get() );
@@ -93,7 +93,7 @@ public class JavaHibernateShorts implements Shorts {
 	public Result<List<String>> getShorts(String userId) {
 		Log.info(() -> format("getShorts : userId = %s\n", userId));
 
-		var query = format("SELECT s.shortId FROM Short s WHERE s.ownerId = '%s'", userId);
+		var query = format("SELECT s.id FROM Short s WHERE s.ownerId = '%s'", userId);
 		return errorOrValue( okUser(userId), database.sql( query, String.class));
 	}
 
@@ -144,12 +144,15 @@ public class JavaHibernateShorts implements Shorts {
 		Log.info(() -> format("getFeed : userId = %s, pwd = %s\n", userId, password));
 
 		final var QUERY_FMT = """
-				SELECT s.shortId, s.timestamp FROM Short s WHERE	s.ownerId = '%s'				
+				SELECT id, timestamp
+				FROM (
+				SELECT s.id, s.timestamp FROM Short s WHERE	s.ownerId = '%s'				
 				UNION			
-				SELECT s.shortId, s.timestamp FROM Short s, Following f 
+				SELECT s.id, s.timestamp FROM Short s, Following f 
 					WHERE 
 						f.followee = s.ownerId AND f.follower = '%s' 
-				ORDER BY s.timestamp DESC""";
+				)
+				ORDER BY timestamp DESC""";
 
 		return errorOrValue( okUser( userId, password), database.sql( format(QUERY_FMT, userId, userId), String.class));		
 	}
